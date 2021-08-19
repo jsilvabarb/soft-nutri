@@ -1,11 +1,11 @@
 node_modules 
 
-tmp/uloads/*
+src/config/database.js
 
+tmp/uploads/*
 !tmp/uploads/.gitkeep
 
-config/database.js
+
+exemplos.js
 
 yarn.lock
-
-exemplos.jsyarn.lock
