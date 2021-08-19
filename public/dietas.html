@@ -1,0 +1,449 @@
+<!-- Portifólio de dietas -->
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Dietas|Softnutri</title>
+
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/material-design-icons/3.0.1/iconfont/material-icons.min.css">
+        <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+        <link rel="stylesheet" href="https://www.w3schools.com/lib/w3-theme-blue-grey.css">
+        <link rel='stylesheet' href='https://fonts.googleapis.com/css?family=Open+Sans'>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-giJF6kkoqNQ00vy+HMDP7azOuL0xtbfIcaT9wjKHr8RbDVddVHyTfAAsrekwKmP1" crossorigin="anonymous">
+        <link rel="stylesheet" type="text/css" href="./css/dietas.css">
+
+        <style>
+            html, body, h1, h2, h3, h4, h5 {font-family: "Open Sans", sans-serif}
+
+            h3 {color: #b6b6b6;}
+            h4, h6 {color: #000;}
+            h5 {color: rgb(119, 119, 119)}
+        </style>
+        <!-- <script src="https://kit.fontawesome.com/a076d05399.js"></script> -->
+        <script defer src="https://use.fontawesome.com/releases/v5.0.6/js/all.js"></script>
+        <script src="./js/scripts.js"></script>
+
+    
+        <script>
+            var idAlimento = null;
+            const idNutri = "/"+localStorage.getItem('idNutri');
+            var url = '';       
+            
+            async function makeRequest(url, method, payload) {
+                var jwtToken = localStorage.getItem('token');
+        
+                if(jwtToken) {
+                    // headers['Authorization'] = 'Bearer ' + jwtToken;
+                    var content = 'Bearer ' + jwtToken;
+                    var myHeader = new Headers();
+                    myHeader.append('Content-type' ,'application/json;charset=UTF-8')
+                    myHeader.append('Authorization', content)
+                
+
+                }    
+            return response = await fetch(url, {
+                    method: method,
+                    mode: 'cors',
+                    headers: myHeader,
+                    body: payload
+                });
+        
+            }
+
+            function loggoff() {
+                localStorage.removeItem('token');
+                localStorage.removeItem('idNutri');
+            }   
+
+            function openModal(mn) {
+                let modal = document.getElementById(mn);            
+
+                modal.style.display = 'Block';       
+            }
+
+            function  closeModal(mn) {
+                let modal = document.getElementById(mn);
+
+                if (typeof modal == 'undefined' || modal === null) 
+                return;
+                
+                modal.style.display = 'none';
+                
+            }
+
+            function showDietas() {
+
+                var dieta = [];
+                var cont = 0;
+                var nutris = makeRequest('http://localhost:3000/dietas'+idNutri, 'GET');
+                nutris.then(function(response) {
+                    response.json().then(function(Dieta) {
+                        console.log(Dieta);
+                        if(Dieta.length > 0) {
+                            Dieta.forEach(dadoDieta => {
+                                var elementoDiv = document.createElement("div");
+                                elementoDiv.setAttribute('id', "/"+ dadoDieta.id);
+                                elementoDiv.setAttribute('class', 'thumbnails');
+                                // elementoDiv.setAttribute('onclick', 'showDetalhesDieta(this);')
+                            
+                                document.getElementById("dietas").appendChild(elementoDiv); 
+                                
+                                var elementoDiv2 = document.createElement("div");
+                                elementoDiv2.setAttribute('class', 'box');
+
+                                elementoDiv.appendChild(elementoDiv2);
+
+                                var elementoDiv3 = document.createElement("div");
+                                elementoDiv3.setAttribute('class', 'inner');
+
+                                elementoDiv2.appendChild(elementoDiv3);
+                                
+                                var elementoH = document.createElement("h2");
+                                elementoH.innerHTML = dadoDieta.descricao;
+
+                                var elementoImg = document.createElement("img");
+                                elementoImg.setAttribute('id', "/"+ dadoDieta.id);
+                                elementoImg.setAttribute('onclick', 'showDetalhesDieta(this);');
+                            
+                                elementoImg.setAttribute('width', '100px');
+                                elementoImg.setAttribute('heigth', '100px');
+                                elementoImg.setAttribute('src', './img/dietasHome.png');
+
+                                var elementoP = document.createElement("p");
+                                elementoP.innerHTML = "Calorias: " + dadoDieta.max_calorias;
+
+                                var elementoBtn = document.createElement("button");
+                                elementoBtn.setAttribute('id', "/"+ dadoDieta.id);
+                                elementoBtn.setAttribute('class', 'button fit');
+                                elementoBtn.setAttribute('onclick', 'openModal("modal-dieta"), addAlimento(this);');
+                                elementoBtn.innerHTML = "Adicionar Alimentos";
+
+                                elementoDiv3.appendChild(elementoH);
+                                elementoDiv3.appendChild(elementoImg);
+                                elementoDiv3.appendChild(elementoP);    
+                                elementoDiv3.appendChild(elementoBtn);
+
+                                cont++;             
+                            });                
+                        } else {
+                            var elementoH = document.createElement("h1");
+                            elementoH.innerHTML = "<strong>Você não adicionou nenhuma dieta ao seu portifólio.<br>Clique no botão abaixo e comece agora!</strong>"
+                            elementoH.style.color = "black";
+                            elementoH.style.backgroundColor = " #1a1919ec";
+                            elementoH.style.borderRadius= "5px";
+                            elementoH.style.padding= "5px";
+                            document.getElementById("dietas").appendChild(elementoH);
+                        }
+                    });
+                });
+            }       
+            
+            function showDetalhesDieta(componente) {
+                var items = [];
+                var cont = 0;
+
+                var id = componente.getAttribute("id");
+                
+                console.log(id.toString());
+
+                event.returnValue
+
+                var detailDieta = makeRequest('http://localhost:3000/dietas/itens'+id , 'GET');
+                detailDieta.then(function(response) {
+                    response.json().then(function(detailDieta) {
+                        console.log(detailDieta);
+                        document.getElementById("dietaDetalhes").innerHTML =  "<button class=fechar onclick=closeModal('modal-itens') >X</button>";
+                        document.getElementById("modal-itens").style.display = "block";
+                        if(detailDieta.length > 0) {
+                            console.log(detailDieta);
+                            detailDieta.forEach(Item => {
+                                var elementoDiv = document.createElement("div");
+                                elementoDiv.innerHTML =  "<h4>Alimento: </h4><h4>"+Item.descricao+"</h4> <h4>Tipo: </h4><h4>"+Item.tipo+"</h4><br><h4> Refeição: </h4><h4>"+ Item.refeicao +"</h4><br><h4>Quantidade: </h4><h4>"+Item.qtd+"</h4><h4> Medida: </h4><h4>"+Item.medida+"</h4><br><h5>Fibras: "+Item.fibras+"g Proteínas: "+Item.proteinas+"g Ferro: "+Item.ferro+"g Carboidratos: "+Item.carboidratos+"g Lipideos"+Item.lipideos+"g Sódio:"+Item.sodio+" Umidade:"+Item.umidade+"g Saturados:"+Item.saturados+"g Mono_insaturados:"+Item.mono_insaturados+" Poli_insaturados:"+Item.poli_insaturados+"g Vitamina_c:"+Item.vitamina_c+"</h5><hr><br>";
+                                elementoDiv.style.color = "#000";
+                                document.getElementById("dietaDetalhes").appendChild(elementoDiv);   
+                                cont++;             
+                            });
+                        } else {
+                            document.getElementById("dietaDetalhes").innerHTML = "A dieta não possui itens <button class=fechar onclick=closeModal('modal-itens') >X</button>";
+                        }
+                    });
+                });
+            }
+
+            function showAlimentos () {
+
+                var cont = 0;
+                var id = 1;
+                var alimentos = makeRequest('/alimentos', 'GET');
+                alimentos.then(function (response) {
+                    response.json().then(function(alimentos) {
+                        console.log(alimentos);
+                        alimentos.forEach(Alimento => {
+                            var elementoList = document.getElementById("alimentos");
+                            
+                            var elementoOp = document.createElement("option");
+                            elementoOp.setAttribute('onclick', 'getIdAlimento(this);');                        
+                            elementoOp.setAttribute('value', id);
+                            elementoOp.innerHTML = alimentos[cont].descricao;
+                            elementoOp.setAttribute('id', id);
+
+                            elementoList.appendChild(elementoOp);
+
+                            cont++;
+                            id++;
+                            
+                        })
+                        
+                    })
+                })
+            }       
+
+            showDietas();
+            showAlimentos ();
+        </script>
+    </head>
+    <body class="w3-theme-l5">
+        <div class="w3-top">
+            <div class="w3-bar w3-left-align w3-large" style="background-color: #58af9b;">
+            <a class="w3-bar-item w3-button w3-hide-medium w3-hide-large w3-right w3-padding-large w3-hover-white w3-large " href="javascript:void(0);" onclick="openNav()" style="background-color: #58af9bb6;" ><i class="fa fa-bars"></i></a>
+            <a href="./home.html" class="w3-bar-item w3-button w3-padding-large" style="background-color: #58af9b;"><i class="fa fa-home w3-margin-right"></i>Início</a>
+            <a href="./pacientes.html" class="w3-bar-item w3-button w3-hide-small w3-padding-large w3-hover-white" title="Pacientes">Pacientes</a>
+            <a href="./agenda.html" class="w3-bar-item w3-button w3-hide-small w3-padding-large w3-hover-white" title="Calendário">Agenda</a>
+            <a href="./dietas.html" class="w3-bar-item w3-button w3-hide-small w3-padding-large w3-hover-white" title="Dietas">Dietas</a>
+            
+            <a onclick="loggoff();" href="/" class="w3-bar-item w3-button w3-hide-small w3-right w3-padding-large w3-hover-white" title="SAIR">
+                <img src="./img/softnutri.png"  alt="Avatar">
+            </a>
+            </div>
+        </div>
+        
+        <!-- Navbar on small screens -->
+        <div id="navDemo" class="w3-bar-block w3-theme-d2 w3-hide w3-hide-large w3-hide-medium w3-large">
+            <a href="#" class="w3-bar-item w3-button w3-padding-large">Perfil</a>
+            <a href="./pacientes.html" class="w3-bar-item w3-button w3-padding-large">Pacientes</a>
+            <a href="./agenda.html" class="w3-bar-item w3-button w3-padding-large">Agenda</a>
+            <a href="./dietas.html" class="w3-bar-item w3-button w3-padding-large">Dietas</a>
+            <hr>
+            <a href="/" class="w3-bar-item w3-button w3-padding-large">SAIR</a>
+        </div>
+        <!-- Main -->
+            <div id="main">
+                <div id="dietas" class="inner">
+                    <!-- Boxes -->
+                    
+                </div>
+            </div>
+        <!-- FIM Main -->
+    
+        <footer>
+                <!-- Modal Add Itens -->
+                <div id="modal-dieta" class="modal-container mostrar">
+                    <div class="modal-dieta">
+                        <button class="fechar" onclick="closeModal('modal-dieta')"> x </button>
+                        <h3 class="subtitulo">Itens Dieta</h3>
+                        <form id="addItens">
+                            <select  id="refeicao" type="text" class="form-select form-select-lg mb-3" aria-label=".form-select-lg example" name="refeicao">
+                                <option value="Café da Manhã">Café da Manhã</option>
+                                <option value="Almoço" >Almoço</option>
+                                <option value="Lanche da Tarde">Lanche da Tarde</option>
+                                <option value="Jantar" >Jantar</option>
+                                <option value="Ceia" >Ceia</option>
+                                <option value="Pós Treino">Pós Treino</option>
+                            </select>
+                            <br>
+                            <select id="alimentos" type="text" class="form-select form-select-lg mb-3" aria-label=".form-select-lg example"  name="id_alimento">
+                        
+
+                            </select>
+                            <br><br>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; grid-gap: 10px; width: 100%;">
+                            <input id="qtd" type="number" class="input" placeholder="Quantidade" name="qtd"
+                            style="width: 100%;">                    
+
+                            <select  id="med" type="text" class="input" placeholder="Medida" name="medida"
+                            style="width: 100%;">
+                                <option value="g" >g</option>
+                                <option value="L" >L</option>
+                                <option value="kg">kg</option>
+                                <option value="ml">ml</option>
+                            </select>
+                            
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; grid-gap: 10px;">
+                                <button type="submit" class="button fit">Salvar</button>
+                            </div>
+                            </div>                
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Modal Add Dieta -->
+                <div id="modal-adicionar-dieta" class="modal-container mostrar">
+                    <div class="modal-dieta">
+                        <button class="fechar" onclick="closeModal('modal-adicionar-dieta')"> x </button>
+                        <h3 class="subtitulo">Dieta</h3>
+                        <form id="addDieta">
+                            <input type="text" name="descricao" class="input" placeholder="Descrição">
+                            <br><br>
+                            <input name="max_calorias" id="calorias" type="text" class="input" placeholder="Máximo de Calorias">
+                            <br>                   
+                            <br>
+                            <button type="submit" class="button fit" style="width: 25%; float: right;">Salvar</button>                  
+                            <br>                   
+                                
+                        </form>
+                    </div>
+                </div>
+
+                <div id="modal-itens" class="modal-container mostrar">
+                    <div id="dietaDetalhes"  class="modal-dieta">
+                        <button class="fechar" onclick="closeModal('modal-itens')"> x </button>
+
+                    </div>
+                </div>
+
+                <!-- Button adicionar dieta -->
+                <section>
+                    <button class="chat-btn" style="text-align: center;" onclick="openModal ('modal-adicionar-dieta'), addDieta();"> 
+                        <i class="material-icons"> add </i>
+                    </button>
+            
+                    <div class="chat-popup">
+                        <div class="badge">1</div>
+                        <div class="chat-area">
+                        <div class="income-msg">
+                            <img src="img/person.jpg" class="avatar" alt="">
+                            <span class="msg"> Hi, How can I help you?</span>
+                        </div>   
+                        </div>
+            
+                        <div class="input-area">
+                            <input type="text">
+                            <button id="emoji-btn"> &#127773;</button>
+                            <button class="submit"> <i class="material-icons"> send</i></button>
+                        </div>
+                    </div>
+                </section>
+                
+                
+                <div style="background-color: #eff7f5ce; width: 100%; height: 400px;">
+
+                
+                </div>
+
+                <div  class="w3-bar-block w3-theme-d2" style="display: flex; flex-direction: column; align-items: center;">
+                    Copy&copy;Right
+                    <img src="./img/softnutrillogo.PNG" alt="">
+                </div>
+        </footer>
+
+        <script src="https://cdn.jsdelivr.net/npm/@joeattardi/emoji-button@3.1.1/dist/index.min.js"></script>
+        <script src="js/script.js"></script>
+        <!-- Conexões com os formulários -->
+        <script>
+
+        function addAlimento(comp) {       
+
+            var idDieta = comp.getAttribute("id");
+            var myForm = document.getElementById("addItens");
+                
+                myForm.addEventListener('submit', function(e){
+                    e.preventDefault();
+
+                    const formData = new FormData(this);
+
+                    const Item = {
+                        refeicao:formData.get('refeicao'),
+                        id_alimento:formData.get('id_alimento'),
+                        qtd:formData.get('qtd'),
+                        medida:formData.get('medida'),
+                    }
+                    
+                    var enviaItens = makeRequest('/addItens'+idDieta, 'POST', JSON.stringify(Item));
+                    enviaItens.then(function(response){
+                        response.text().then(function(itens){                      
+                            var msg = document.createElement("div");
+                            msg.setAttribute('id', 'msg-success');
+                            msg.style.color = "green";
+                            msg.innerHTML = "Alimento adicionado com sucesso!";
+
+                            setTimeout(function(){ msg.style.display= "none"; }, 3000);
+                            document.getElementById("modal-dieta").appendChild(msg);
+                            location.reload();
+                        }).catch(function(error) {
+                            console.log(error);
+                        }) 
+                    }).catch(function(error) {
+                        console.log(error);
+                    })
+
+                });
+            }
+
+            function addDieta() {
+
+                var myForm = document.getElementById("addDieta");
+                
+                myForm.addEventListener('submit', function(e){
+                    e.preventDefault();
+
+                    const formData = new FormData(this);
+
+                    const Item = {
+                        descricao:formData.get('descricao'),
+                        max_calorias:formData.get('max_calorias'),
+                    }
+                    
+                    var enviaItens = makeRequest('/dieta'+idNutri, 'POST', JSON.stringify(Item));
+                    enviaItens.then(function(response){
+                        response.text().then(function(itens){
+                            var msg = document.createElement("div");
+                            msg.setAttribute('id', 'msg-success');
+                            msg.style.color = "green";
+                            msg.innerHTML = "Dieta adicionada com sucesso!";
+
+                            setTimeout(function(){ msg.style.display= "none"; }, 3000);
+                            document.getElementById("modal-dieta").appendChild(msg);
+                            location.reload();
+                        }).catch(function(error) {
+                            console.log(error);
+                        }) 
+                    }).catch(function(error) {
+                        console.log(error);
+                    })
+
+                });
+            }
+
+        </script>
+
+    <!-- Responsividade Menu -->
+        <script>
+            // Accordion
+            function myFunction(id) {
+            var x = document.getElementById(id);
+            if (x.className.indexOf("w3-show") == -1) {
+                x.className += " w3-show";
+                x.previousElementSibling.className += " w3-theme-d1";
+            } else { 
+                x.className = x.className.replace("w3-show", "");
+                x.previousElementSibling.className = 
+                x.previousElementSibling.className.replace(" w3-theme-d1", "");
+            }
+            }
+            
+            //função small
+            function openNav() {
+                var x = document.getElementById("navDemo");
+                if (x.className.indexOf("w3-show") == -1) {
+                    x.className += " w3-show";
+                } else { 
+                    x.className = x.className.replace(" w3-show", "");
+                }
+            }
+        </script>
+
+        
+    </body>
+</html>

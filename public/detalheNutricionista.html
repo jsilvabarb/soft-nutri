@@ -1,0 +1,621 @@
+<!-- Página que exibe os detalhes do Nutricionista ao Paciente -->
+<!DOCTYPE html>
+<html>
+    <title>MarcarConsulta</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+    <link rel="stylesheet" href="https://www.w3schools.com/lib/w3-theme-blue-grey.css">
+    <link rel='stylesheet' href='https://fonts.googleapis.com/css?family=Open+Sans'>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-giJF6kkoqNQ00vy+HMDP7azOuL0xtbfIcaT9wjKHr8RbDVddVHyTfAAsrekwKmP1" crossorigin="anonymous">
+    <link  href="./css/estilo.css" rel="stylesheet">
+    <style>
+    html, body, h1, h2, h3, h4, h5 {font-family: "Open Sans", sans-serif}
+    </style>
+
+    <script>
+
+        var x = window.location.search;
+        var parts = x.split('=');
+        var [ param, idNutri ] = parts;
+
+        const idPac = localStorage.getItem("idPac");
+
+        //Função assíncrona para autenticação
+        async function makeRequest(url, method, payload) {
+            var jwtToken = localStorage.getItem('token');
+
+            if(jwtToken) {
+                // headers['Authorization'] = 'Bearer ' + jwtToken;
+                var content = 'Bearer ' + jwtToken;
+                var myHeader = new Headers();
+                myHeader.append('Content-type' ,'application/json;charset=UTF-8');
+                myHeader.append('Authorization', content);
+
+            }
+
+            return response = await fetch(url, {
+                method: method,
+                mode: 'cors',
+                headers: myHeader,
+                body: payload
+            });           
+        }
+
+        //Função responsável por pegar os dados 
+        //do nutri
+        function getNutricionista() {
+            
+            var paciente = makeRequest('/nutri/'+idNutri, 'GET');
+            paciente.then(function(response) {
+                response.json().then(function(Nutricionista) {
+                    //Conteúdo top
+                    var elementoH = document.createElement("h4");
+                    elementoH.setAttribute('class', 'w3-opacity')
+                    elementoH.innerHTML = Nutricionista[0].nome +" "+ Nutricionista[0].sobrenome+"<br><small><strong>Universidade:</strong> "+Nutricionista[0].universidade+"</small><hr>";                 
+                    document.getElementById("nutri-top").appendChild(elementoH);   
+                    
+                //Conteúdo título modal chat
+                elementoH5 = document.createElement("h5");
+                elementoH5.innerHTML = Nutricionista[0].nome  +" "+ Nutricionista[0].sobrenome;
+                document.getElementById("nutri-chat").appendChild(elementoH5);                
+                    
+                });
+            });
+
+        }
+        
+        //Função responsável por pegar 
+        //a foto de perfil do nutri
+        function getPerfilNutri() {
+            var perfilNutri= makeRequest('/perfilNutri/'+idNutri, 'GET');
+            perfilNutri.then(function(response) {
+            response.json().then(function(pathImg) { 
+                    var elementoImgTop = document.createElement("img");
+                    elementoImgTop.setAttribute('class', 'perfil-chat');
+                    elementoImgTop.setAttribute('alt', 'perfil');
+
+                    var elementoImgPerfil = document.createElement("img");
+                    elementoImgPerfil.setAttribute('class', 'perfil-chat');
+                    elementoImgPerfil.setAttribute('alt', 'perfil');
+
+                    if(pathImg.length > 0) {
+                        elementoImgTop.setAttribute('src', '/files/'+pathImg[0].url);
+                        elementoImgPerfil.setAttribute('src', '/files/'+pathImg[0].url);
+                        //elementoDiv.setAttribute('width', '50%');
+                        document.getElementById("imgPerfil").appendChild(elementoImgTop);                
+                        document.getElementById("perfil-chat").appendChild(elementoImgPerfil);                
+                        
+                    } else {
+                        elementoImgTop.setAttribute('src', './user.png');
+                        elementoImgPerfil.setAttribute('src', './user.png');
+                        document.getElementById("imgPerfil").appendChild(elementoImgTop);    
+                        document.getElementById("perfil-chat").appendChild(elementoImgPerfil);    
+                    }
+                });
+            });          
+        }  
+
+        //Exibe as dietas do nutricionista
+        function showListaDietas () {
+
+            var cont = 0;
+
+            var values = [];
+            
+            var nutriDietas = makeRequest('/dietas/'+idNutri, 'GET');
+            nutriDietas.then(function (response) {
+                response.json().then(function(nutri) {
+                    console.log(nutri);
+                    var cont = 0;
+                    nutri.forEach(Dieta => {
+                        values.push(Dieta);                                                     
+                        
+                    });
+                    console.log(values[1].id);
+
+                    while(cont<=3) {
+                        var elementoList = document.getElementById("lista-dietas");
+                        
+                        var elementoH = document.createElement("h6");                       
+                        elementoH.setAttribute('id', values[cont].id);
+                        elementoH.innerHTML = values[cont].descricao+"<br>"+values[cont].max_calorias+" Calorias<hr>";
+                        elementoList.appendChild(elementoH);
+                        cont++;
+                    }                   
+                    
+                });
+            });
+        }
+
+        //Função responsável por exiber as
+        //mensagens do chat entre nutricionista
+        //e paciente
+        function showMessages() {
+            var exibeMensagem = makeRequest('/allMessages/'+idPac+'/'+idNutri, 'GET');
+            exibeMensagem.then(function(response) {
+            response.json().then(function(mensagens) {
+                console.log(mensagens);
+                var cont = 0;
+                mensagens.forEach(Mensagem => {
+
+                    console.log(Mensagem.remetente);
+                    
+                    if(Mensagem.remetente == idPac) {
+
+                        var msgPage = document.getElementById('msg-page'); 
+                        var divOutChats = document.createElement('div');
+                        divOutChats.setAttribute('class', 'outgoing-chats');
+                        msgPage.appendChild(divOutChats); 
+                    
+                        var divOutChatsMsg = document.createElement('div');
+                        divOutChatsMsg.setAttribute('class', 'outgoing-chats-msg');
+                        divOutChats.appendChild(divOutChatsMsg);              
+                    
+                        var divOutChatsImg = document.createElement('div');
+                        divOutChatsImg.setAttribute('class' , 'outgoing-chats-img');
+                        divOutChats.appendChild(divOutChatsImg);
+                    
+                        var imgPerfilChat = document.createElement('img');
+                        
+                        imgPerfilChat.setAttribute('class', 'perfil-chat');
+
+                        var perfilNutri = makeRequest('/pacPerfil/'+idPac, 'GET');
+                        perfilNutri.then(function(response) {
+                        response.json().then(function(pathImg) {                           
+                            if(pathImg.length > 0) {              
+                            imgPerfilChat.setAttribute('src', '/files/'+pathImg[0].url);               
+                            } 
+                        });
+                        }); 
+                        
+                        divOutChatsImg.appendChild(imgPerfilChat);
+                    
+                    
+                        var pMsg = document.createElement('p');
+                        pMsg.innerHTML = Mensagem.mensagem;
+                
+                        divOutChatsMsg.appendChild(pMsg);
+                    } else {
+
+                        var msgPage = document.getElementById('msg-page'); 
+
+                        var divRecChats = document.createElement('div');
+                        divRecChats.setAttribute('class', 'received-chats');
+                        msgPage.appendChild(divRecChats); 
+
+                        var divRecChatsImg = document.createElement('div');
+                        divRecChatsImg.setAttribute('class' , 'received-chats-img');
+                        divRecChats.appendChild(divRecChatsImg);
+
+                        var divRecChatsMsg = document.createElement('div');
+                        divRecChatsMsg.setAttribute('class', 'received-msg');
+                        divRecChats.appendChild(divRecChatsMsg); 
+
+                        var divRecMsgInb = document.createElement('div');
+                        divRecMsgInb.setAttribute('class', 'received-msg-inbox');
+                        divRecChatsMsg.appendChild(divRecMsgInb);   
+
+
+                        var imgPerfilChat = document.createElement('img');
+
+                        imgPerfilChat.setAttribute('class', 'perfil-chat');
+
+                        var perfilNutri = makeRequest('/perfilNutri/'+idNutri, 'GET');
+                        perfilNutri.then(function(response) {
+                            response.json().then(function(pathImg) {                                
+                                if(pathImg.length > 0) {              
+                                    imgPerfilChat.setAttribute('src', '/files/'+pathImg[0].url);               
+                                } 
+                            });
+                        }); 
+
+                        divRecChatsImg.appendChild(imgPerfilChat);
+
+
+                        var pMsg = document.createElement('p');
+                        pMsg.innerHTML = Mensagem.mensagem;
+
+                        divRecMsgInb.appendChild(pMsg);
+
+                    }
+                
+                    cont++;
+                })
+            })
+        }) 
+        }
+
+        //Função responsável por exibir
+        //os horários disponíveis do nutricionista
+        function showHoraios() {    
+            var pacientes = makeRequest('/verDisp/'+idNutri, 'GET');
+            pacientes.then(function(response) {
+                response.json().then(function(horarios) {
+                    console.log(horarios); 
+                    var cont = 0; 
+                    if(horarios.length > 0 ){
+                        horarios.forEach(Consulta => {
+                            var elementoDiv = document.createElement("div");
+                            elementoDiv.setAttribute('id', 'consulta'+cont);
+                            elementoDiv.setAttribute('class', 'consulta');
+                            document.getElementById("horarios").appendChild(elementoDiv);                        
+
+                            var data = Consulta.data;
+                            var [ano, mes, dia] = data.split("-");
+
+                            var horario = Consulta.hora;
+
+                            var elementoH = document.createElement("h5");
+                            elementoH.innerHTML = "Dia "+dia+"-"+mes+"-"+ano+" Hora: "+horario;
+                                                
+
+                            var elementoHr = document.createElement("hr");
+
+                            var elementoBtn = document.createElement("button");
+                            elementoBtn.setAttribute('onclick', 'openModal("modal-agenda"), addConsulta(), atualizarHorario(this);')
+                            elementoBtn.setAttribute('id', Consulta.id);
+                            elementoBtn.setAttribute('class', 'marcar');
+                            elementoBtn.innerHTML="Marcar Consulta";
+                            
+                            var elementoSmall = document.createElement("small");
+                            elementoSmall.innerHTML = "Endereço/Link: "+Consulta.observacao+
+                                                    " <strong>"+Consulta.status+"</strong>";
+                            var elementoBr = document.createElement("br");
+                            elementoDiv.appendChild(elementoH);         
+                            elementoDiv.appendChild(elementoSmall); 
+
+                            document.getElementById("data").value = dia+"-"+mes+"-"+ano;
+                            document.getElementById("hora").value = horario;
+                            if(Consulta.status != "Marcada") {
+                                elementoDiv.appendChild(elementoBtn);
+                                elementoDiv.appendChild(elementoBr);
+                            }
+                            elementoDiv.appendChild(elementoHr);        
+                            cont++;
+                        });                
+                    } else {
+                        var elementoH = document.createElement("h6");
+                        elementoH.innerHTML = "Nutricionista não disponibilizou horários."
+                        document.getElementById("horarios").appendChild(elementoH);
+                    } 
+                });
+            });
+        } 
+        
+
+        function atualizarHorario(componente) {
+            var id = componente.getAttribute("id");
+
+            var atualiza = makeRequest('/atualizaHorario/'+idNutri+'/'+id, 'PUT');
+            atualiza.then(function (response) {
+                response.json().then(function (atualizou){
+                    console.log(atualizou);
+                })
+            })
+        }
+        
+        getNutricionista();
+        getPerfilNutri();
+        showListaDietas ();
+        showMessages();
+        showHoraios();      
+
+    </script>
+
+    <body class="w3-theme-l5">
+
+        <!-- Navbar -->
+        <div class="w3-top">
+        <div class="w3-bar w3-left-align w3-large" style="background-color: #58af9b;">
+        <a class="w3-bar-item w3-button w3-hide-medium w3-hide-large w3-right w3-padding-large w3-hover-white w3-large " href="javascript:void(0);" onclick="openNav()" style="background-color: #58af9bb6;" ><i class="fa fa-bars"></i></a>
+        <a href="/homePaciente" class="w3-bar-item w3-button w3-padding-large" style="background-color: #58af9b;"><i class="fa fa-home w3-margin-right"></i>Início</a>
+        <a href="/nutricionistas" class="w3-bar-item w3-button w3-hide-small w3-padding-large w3-hover-white" title="Meu Nutricionista">Nutricionistas</a>
+        <a href="/diario" class="w3-bar-item w3-button w3-hide-small w3-padding-large w3-hover-white" title="Diário">Diário</a>
+        
+        <a onclick="loggoff();" href="/" class="w3-bar-item w3-button w3-hide-small w3-right w3-padding-large w3-hover-white" title="SAIR">
+            <img src="./img/softnutri.png"  alt="Avatar">
+        </a>
+        </div>
+        </div>
+
+        <!-- Navbar on small screens -->
+        <div id="navDemo" class="w3-bar-block w3-theme-d2 w3-hide w3-hide-large w3-hide-medium w3-large">
+        <a href="./nutricionistas.html" class="w3-bar-item w3-button w3-padding-large">Nutricionistas</a>
+        <a href="./diario.html" class="w3-bar-item w3-button w3-padding-large">Diário</a>
+        </div>
+
+
+        <br>
+    <!-- Container -->
+        <div class="w3-container w3-content" style="max-width:1400px;margin-top:80px">
+            
+            <div class="w3-row">
+                <!-- Left Column -->
+            <div class="w3-col m3">
+
+                <div class="w3-card w3-round w3-white" style="width: 90%;">
+                    <div class="w3-container">
+                        <div style="width: 50%; margin-left: 25%;">
+                            <p id="imgPerfil" class="w3-center" style="padding: 10px;">
+                        </div>
+                        <div id="nutri-top" class="w3-center">
+
+                        </div>
+                        <br>
+                        <p><button class="w3-button w3-block w3-theme-l4" onclick="openModal('modal-chat'), sendMessage();"><i class="fa fa-comment" style="float: left;"></i>Chat</button></p>
+                        <br>
+                        <h4 class="titulo" style="text-align:left;">Ultimas Dietas</h4>
+                        <div class="w3-card w3-round w3-white">
+                            <div id="lista-dietas" class="w3-container">
+                            
+                            </div>
+                        </div>
+                        <br>                   
+                        <!-- <div class="w3-card w3-round w3-white" style="position: absolute;">
+                            <div id="hover" class="w3-container">
+                            Para ver todas as dietas<br> consulte o nutricionista!
+                            </div>
+                        </div> -->
+                        
+                        <br>
+                    </div>
+                </div>
+            </div>
+            <!-- End Left Column -->
+        
+            <br>
+
+            <!-- Middle Columns -->
+            <div class="w3-col m7">       
+
+                <div id="horarios">
+
+                </div>
+                
+                <!-- Modal de chat  -->
+                <div id="chat">
+                    <div id="modal-chat" class="modal-container mostrar" style="display: none;" >
+                    <!-- <div id="modal" class="modal-agenda">         -->
+                        <div class="container">
+                        <div class="msg-header">
+                            <div id="perfil-chat" class="msg-header-img">
+                        
+                            </div>
+                            <div id="nutri-chat" class="active">
+                                                        
+                            </div>
+                            <div class="header-icons">
+                            <button class='close' onclick="closeModal('modal-chat')">X</button></i>
+                            </div>                            
+                        </div>
+
+                        <div class="chat-page">
+                            <div class="msg-inbox">
+                            <div class="chats">
+                                <div class="msg-page" id="msg-page">
+                                                            
+
+                                </div>
+
+                                <div class="msg-bottom-body">
+                                    <div class="bottom-icons">
+
+                                    </div>
+                                    <div class="input-group">
+                                        <form id="send-msg" class="input-group">
+                                        <input id="msg" name="msg" type="text" class="form-control" autocomplete="off" placeholder="Digite...">                                      
+                                        <button type="submit" class="input-group-text" ><span class="input-group-text"><i class="fa fa-paper-plane"></i></span></button>
+                                        
+                                        </form>                                  
+                                        
+                                    </div>
+                                </div>
+
+                            </div>
+                            </div>
+                        </div>
+
+                        
+
+                        </div>
+                    <!-- </div> -->
+                    </div>
+                </div>
+                <!-- Fim do Modal de chat -->
+                
+            </div>
+            <!-- End Middle Column -->
+            <br>
+            <!-- Right Column -->
+            <!-- <div class="w3-col m2"></div> -->
+            </div>
+        </div> 
+        
+        <!-- Rodape e Modais -->
+        <footer>
+            <div id="modal-agenda" class="modal-container mostrar" style="display: none;" >
+                    <div id="modal" class="modal-agenda" style="margin-top: -100px;">
+            
+                        <button id="close" class="btn-close" onclick="closeModal('modal-agenda');"><h4 class="w3-opacity"></h4></button>
+                        <center>
+                        <h4 class="titulo">Agendamentos</h4>
+                        <br>
+                        </center>    
+                        
+                        <form id="addConsulta">
+                            <input type="text" name="observacao" id="observacao" class="input" placeholder="Observação">
+                            <br><br>
+                            <input type="text" name="data" id="data" class="input">
+                            <label style="float: left;"><small>Data</small ></label>
+                            <br><br><br>
+                            <input type="text" name="hora" id="hora" class="input" >
+                            <label style="float: left;"><small>Hora</small></label>
+                            <br><br>
+                            <button type="submit" class="button fit">Salvar</button>
+                        </form>
+                    
+                    </div>
+                </div>
+        
+            <div style="background-color: #eff7f5ce; width: 100%; height: 400px;"></div>
+
+            <div  class="w3-bar-block w3-theme-d2" style="display: flex; flex-direction: column; align-items: center;">
+                Copy&copy;Right
+                <img src="./img/softnutrillogo.PNG" alt="">
+            </div>
+        </footer> 
+
+        <!-- Script jquery -->
+        <script
+            src="https://code.jquery.com/jquery-3.4.1.min.js"
+            integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo="
+            crossorigin="anonymous">
+        </script>
+        <script src="calendar.js" async defer></script>
+
+        <script>
+            const dataClick = {
+                dia: '',
+                mes: '',
+                ano:'',
+            }
+
+            //Função responsável por enviar uma mensagem
+            function sendMessage() {
+
+                var msg = document.getElementById('msg');
+                var myForm = document.getElementById('send-msg');
+
+                myForm.addEventListener('submit', function(e) {
+
+                e.preventDefault();
+
+                const formData = new FormData(this);
+
+                const Item = {
+
+                    remetente: idPac,
+                    destinatario: idNutri,
+                    mensagem: formData.get('msg')
+                };
+
+                console.log(Item);
+
+                var enviaMensagem = makeRequest('/mensagem/'+idPac+'/'+idNutri, 'POST',JSON.stringify(Item));
+                enviaMensagem.then(function(response) {
+                    response.json().then(function(mensagem) {
+                    console.log(mensagem);
+
+                    var now = new Date();
+                    var hour = now.getHours();
+                    var minute = now.getMinutes();
+                    // alerta o valor do campo
+                    
+                    var msgPage = document.getElementById('msg-page'); 
+                    var divOutChats = document.createElement('div');
+                    divOutChats.setAttribute('class', 'outgoing-chats');
+                    msgPage.appendChild(divOutChats); 
+                    
+                    var divOutChatsMsg = document.createElement('div');
+                    divOutChatsMsg.setAttribute('class', 'outgoing-chats-msg');
+                    divOutChats.appendChild(divOutChatsMsg);
+                    
+                    var divOutChatsImg = document.createElement('div');
+                    divOutChatsImg.setAttribute('class' , 'outgoing-chats-img');
+                    divOutChats.appendChild(divOutChatsImg);
+                    
+                    var imgPerfilChat = document.createElement('img');
+                    imgPerfilChat.setAttribute('class', 'perfil-chat');
+                    
+                    var perfilNutri = makeRequest('/pacPerfil/'+idPac, 'GET');
+                    perfilNutri.then(function(response) {
+                        response.json().then(function(pathImg) {
+                        console.log(pathImg[0].url);
+                        
+                        if(pathImg.length > 0) {              
+                        imgPerfilChat.setAttribute('src', '/files/'+pathImg[0].url);               
+                        } 
+                        });
+                    }); 
+
+                    divOutChatsImg.appendChild(imgPerfilChat);
+                    
+                    
+                    var pMsg = document.createElement('p');
+                    pMsg.innerHTML = msg.value;
+                    
+                    divOutChatsMsg.appendChild(pMsg);
+                    
+                    var spanTime = document.createElement('span');
+                    spanTime.setAttribute('class', 'time');
+                    spanTime.innerHTML = hour +":"+ minute;
+                    divOutChatsMsg.appendChild(spanTime);
+
+                    var $target = $('#msg-page');
+                        $target.animate({
+                        scrollTop: $target.height()
+                    }, 1000);
+                    
+                    msg.value = '';
+
+
+                    })
+                })
+                })
+
+
+            }
+
+            //Função responsável por adicionar uma nova consulta
+            function addConsulta() {                
+                var myForm = document.getElementById("addConsulta");
+                
+                myForm.addEventListener('submit', function(e){
+                    e.preventDefault();
+
+                    const formData = new FormData(this);            
+
+                    var values = formData.get("data");
+
+                    var [dia, mes , ano] = values.split("-");
+
+                    var horario = formData.get("hora");
+
+                    const Item = {
+                        observacao:formData.get('observacao'),
+                        data: ano+"-"+mes+"-"+dia,
+                        hora: ano+"-"+mes+"-"+dia+"T"+horario,
+                        status:'Confirmada',
+                    } 
+                    console.log(dataClick.dia);
+
+                    console.log(Item);
+                    
+                    var enviaItens = makeRequest('/consulta/'+idNutri+'/'+idPac, 'POST', JSON.stringify(Item));
+                    enviaItens.then(function(response){
+                        response.text().then(function(itens){
+                            var msg = document.createElement("div");
+                            msg.setAttribute('id', 'msg-success');
+                            msg.style.color = "green";
+                            msg.innerHTML = "Consulta adicionada com sucesso!";
+
+                            setTimeout(function(){ msg.style.display= "none"; }, 3000);
+                            document.getElementById("modal").appendChild(msg);
+                            location.reload();
+                        }).catch(function(error) {
+                            console.log(error);
+                        }) 
+                    }).catch(function(error) {
+                        console.log(error);
+                    })
+
+                });
+            }
+        </script>
+
+        <script src="./js/scripts.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/js/bootstrap.bundle.min.js" integrity="sha384-ygbV9kiqUc6oa4msXn9868pTtWMgiQaeYH7/t7LECLbyPA2x65Kgf80OJFdroafW" crossorigin="anonymous"></script>      
+    </body>
+</html>

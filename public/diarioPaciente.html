@@ -1,0 +1,996 @@
+<!-- Página de exibição da dieta do paciente e seu consumo diário -->
+<!DOCTYPE html>
+<html>
+    <title>Diário Paciente | Softnutri</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+    <link rel="stylesheet" href="https://www.w3schools.com/lib/w3-theme-blue-grey.css">
+    <link rel='stylesheet' href='https://fonts.googleapis.com/css?family=Open+Sans'>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-giJF6kkoqNQ00vy+HMDP7azOuL0xtbfIcaT9wjKHr8RbDVddVHyTfAAsrekwKmP1" crossorigin="anonymous">
+    <link href="https://cdn.jsdelivr.net/npm/glider-js@1/glider.min.css" rel="stylesheet">
+    <link  href="./css/estilo.css" rel="stylesheet">
+    <link  href="./css/carousel.css" rel="stylesheet">
+    <!-- <link  href="./css/dietas.css" rel="stylesheet"> -->
+
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@2.8.0"></script>
+
+
+    <script>    
+    
+        const idPac = localStorage.getItem('idPac');
+
+        var size =0;
+
+        var refeicoes = [];
+
+        var alimentoDia = [];    
+
+        function DadosGrafico (fibras, proteinas, ferro, carboidratos, lipideos, calorias) {
+            this.fibras = fibras;
+            this.proteinas = proteinas;
+            this.ferro = ferro;
+            this.carboidratos = carboidratos;
+            this.lipideos = lipideos;
+            this.calorias = calorias;
+        }   
+
+        //Calcular consumo do alimento add pelo pac
+
+        var dadGrafico = new DadosGrafico();
+    
+        async function makeRequest(url, method, payload) {
+            var jwtToken = localStorage.getItem('token');
+
+            if(jwtToken) {
+                // headers['Authorization'] = 'Bearer ' + jwtToken;
+                var content = 'Bearer ' + jwtToken;
+                var myHeader = new Headers();
+                myHeader.append('Content-type' ,'application/json;charset=UTF-8')
+                myHeader.append('Authorization', content)
+                
+
+            }    
+            return response = await fetch(url, {
+                method: method,
+                mode: 'cors',
+                headers: myHeader,
+                body: payload
+            });
+
+        }
+
+        function preparaPayload() {
+
+            var myForm = document.getElementById("addItens");
+            
+            myForm.addEventListener('submit', function(e){
+                e.preventDefault();
+
+                const formData = new FormData(this);
+                var enviaItens = makeRequest('/addItens/300/5', 'POST', formData);
+                enviaItens.then(function(response){
+                    response.json().then(function(itens){
+                        console.log(itens);
+                    })
+                }).catch(function(error) {
+                    console.log(error);
+                })
+
+            });
+        }
+        
+        function openModal(mn) {
+            let modal = document.getElementById(mn);            
+
+            modal.style.display = 'Block';       
+        }
+
+        function  closeModal(mn) {
+            let modal = document.getElementById(mn);
+
+            if (typeof modal == 'undefined' || modal === null) 
+            return;
+            
+            modal.style.display = 'none';
+            
+        }
+
+        //pega os dados do pac como nome, sobrenome
+        function getPaciente() {
+            var nutri = makeRequest('/detalhespaciente/'+idPac, 'GET');
+            nutri.then(function(response) {
+                response.json().then(function(paciente) {
+                    console.log(paciente);
+                    var elH = document.createElement("h4");
+                    elH.setAttribute('class', 'w3-center');
+                    elH.innerHTML = paciente.nome +" "+paciente.sobrenome;
+                    document.getElementById("perfil-nome").appendChild(elH);
+
+                    var peso = paciente.peso;
+                    var altura = paciente.altura;
+
+                    var elP = document.createElement('h4');
+                    elP.setAttribute('class', 'w3-center');
+                    elP.innerHTML = "<small><h6><strong>IMC: </strong>"+calcIMC(peso, altura)+"</h6></small><hr><br>";
+                    document.getElementById("perfil-imc").appendChild(elP);
+
+                })
+            })
+        }
+
+        //pega a imagem de perfil do paciente
+        function getPerfil() {
+
+            var perfilPac = makeRequest('/pacPerfil/'+idPac, 'GET');
+            perfilPac.then(function(response) {
+                response.json().then(function(pathImg) {
+                    console.log(pathImg);    
+                    if(pathImg.length > 0) {
+                        var elementoDiv = document.createElement("img");
+                        elementoDiv.setAttribute('class', 'perfil-chat');
+                        elementoDiv.setAttribute('src', '/files/'+pathImg[0].url);
+                        elementoDiv.setAttribute('alt', 'perfil');
+                        //elementoDiv.setAttribute('width', '50%');
+                        document.getElementById("imgPerfil").appendChild(elementoDiv);                   
+                    
+                    } else {
+                        elementoDiv.setAttribute('src', './user.png');
+                        document.getElementById("imgPerfil").appendChild(elementoDiv); 
+                    }       
+
+                });
+            });          
+        }
+
+        function calcIMC (peso, altura) {
+            var imc = peso / (altura * altura);
+
+            return imc;
+        }
+
+        //carregada quando clica em calcular consumo.
+        function calcConsumo() {
+
+            var totQtd = 0;
+
+            var f = 0;
+            var acumF = 0;
+
+            var p = 0;
+            var acumP =0
+            
+            var fer = 0;
+            var acumFer = 0
+            
+            var car = 0;
+            var acumCar =0;
+            
+            var lip = 0;
+            var acumLip =0
+            
+            var cal = 0;
+            var acumCal =0
+
+            if(refeicoes.length > 0) {
+                refeicoes.forEach(Refeicao => {
+            
+                if(Refeicao.isMarked) {               
+                        if(Refeicao.medida == "gramas" || Refeicao.medida == "g" || Refeicao.medida == "ml" ) {
+                            totQtd = Refeicao.qtd / 100;
+                        } 
+                        if (Refeicao.medida == "quilo" || Refeicao.medida == "kg" || Refeicao.medida == "L" ) {
+                            totQtd = Refeicao.qtd * 1000;                  
+                        }
+
+                        f = totQtd * Refeicao.fibras;
+                        acumF = acumF + f;
+
+                        p = totQtd * Refeicao.proteinas;
+                        acumP = acumP + p;
+
+                        fer = totQtd * Refeicao.ferro;
+                        acumFer = acumFer + fer;
+
+                        car = totQtd * Refeicao.carboidratos;
+                        acumCar = acumCar + car;
+
+                        lip = totQtd * Refeicao.lipideos;
+                        acumLip = acumLip + lip;
+
+                        cal = Refeicao.calorias;
+                        acumCal = acumCal + cal;
+                    }     
+                
+                })
+            }
+            alimentoDia.forEach(Alimento => {
+            
+            if(Alimento.isMarked) {               
+                    if(Alimento.medida = "g" || Alimento.medida == "ml") {
+                        totQtd = Alimento.qtd / 100;
+                    } 
+                    if (Alimento.medida == "kg" || Alimento.medida == "L") {
+                        totQtd = Alimento.qtd * 1000;                  
+                    }
+
+                    f = totQtd * Alimento.fibras;
+                    acumF = acumF + f;
+
+                    p = totQtd * Alimento.proteinas;
+                    acumP = acumP + p;
+
+                    fer = totQtd * Alimento.ferro;
+                    acumFer = acumFer + fer;
+
+                    car = totQtd * Alimento.carboidratos;
+                    acumCar = acumCar + car;
+
+                    lip = totQtd * Alimento.lipideos;
+                    acumLip = acumLip + lip;
+
+                    cal = Alimento.calorias;
+                    acumCal = acumCal + cal;
+                }     
+            
+            })
+            dadGrafico.fibras = acumF;
+            dadGrafico.proteinas = acumP;
+            dadGrafico.ferro = acumFer;
+            dadGrafico.carboidratos = acumCar;
+            dadGrafico.lipideos = acumLip;
+            dadGrafico.calorias = acumCal;
+
+        sendConsumoBanco( dadGrafico.fibras,  dadGrafico.proteinas,  dadGrafico.ferro,  dadGrafico.carboidratos,  dadGrafico.lipideos, dadGrafico.calorias);
+        exibeGrafico();
+        location.reload();
+        }
+        
+        // Função marcaAlimento
+        // Carregada quando clica no checkbox do alimento. Inverte o valor de isMarked
+        // retorna void  
+        function marcaAlimento(alimentoPosition) {
+
+            refeicoes[alimentoPosition].isMarked = !refeicoes[alimentoPosition].isMarked;
+            alimentoDia[alimentoPosition].isMarked = !alimentoDia[alimentoPosition].isMarked;
+
+        }
+
+        function addAlimento(alimentoPosition) {
+
+            alimentoDia[alimentoPosition].isMarked = !alimentoDia[alimentoPosition].isMarked;
+
+        }
+
+        //Exibe a dieta ativa do paciente 
+        function showDietaDiario() {
+
+            var detailDieta = makeRequest('/dietaDiario/'+idPac , 'GET');
+            detailDieta.then(function(response) {
+                response.json().then(function(listaRefeicoes) {
+                    console.log(listaRefeicoes);
+
+                    if(listaRefeicoes.length == 0) {
+                        var elementoH = document.createElement("h5");
+                        elementoH.innerHTML = "Você não possui nenhuma dieta ativa no momento.";
+                        document.getElementById("aviso").appendChild(elementoH);
+                    }
+                    
+                    refeicoes = listaRefeicoes;
+                    var cont = 0;
+                    refeicoes.forEach(Refeicao => {
+
+                        var checkAlimento = document.createElement("input");
+                        checkAlimento.setAttribute('type', 'checkbox');
+                        checkAlimento.setAttribute('type', 'checkbox');
+                        checkAlimento.setAttribute('name', 'alimento_'+cont);
+                        checkAlimento.setAttribute('onClick', 'marcaAlimento(' + cont + ')');
+                        checkAlimento.style.marginLeft ="-20px"                  
+
+                        var label = document.createElement("label");
+                        label.setAttribute('class', 'form-check-label');
+                        label.setAttribute('for', 'alimento');
+                        label.style.padding ="10px";
+                    
+                        if(Refeicao.refeicao == "Café da Manhã") {
+
+                            var divCafe = document.createElement("div");
+                            divCafe.setAttribute('class', 'alimento-cafe');
+                        
+                            label.innerHTML = Refeicao.qtd+" "+Refeicao.medida+" de "+Refeicao.descricao+"<hr>";
+                            checkAlimento.setAttribute('value',  Refeicao.qtd+" "+Refeicao.medida+" de "+Refeicao.descricao)
+                            document.getElementById("cafe").appendChild(divCafe);
+                            divCafe.appendChild(checkAlimento);
+                            divCafe.appendChild(label);
+
+                        } else if (Refeicao.refeicao == "Almoço") {
+                            var divAlmoco = document.createElement("div");
+                            divAlmoco.setAttribute('class', 'alimento-almoco');
+
+                            label.innerHTML = Refeicao.qtd+" "+Refeicao.medida+" de "+Refeicao.descricao+"<hr>";
+                            checkAlimento.setAttribute('value',  Refeicao.qtd+" "+Refeicao.medida+" de "+Refeicao.descricao)
+                            document.getElementById("almoco").appendChild(divAlmoco);
+                            divAlmoco.appendChild(checkAlimento);
+                            divAlmoco.appendChild(label);
+    ;
+                        } else if (Refeicao.refeicao == "Jantar") {
+
+                            var divJantar = document.createElement("div");
+                            divJantar.setAttribute('class', 'alimento-jantar');
+
+                            label.innerHTML = Refeicao.qtd+" "+Refeicao.medida+" de "+Refeicao.descricao+"<hr>";
+                            checkAlimento.setAttribute('value',  Refeicao.qtd+" "+Refeicao.medida+" de "+Refeicao.descricao)
+                            document.getElementById("jantar").appendChild(divJantar);
+                            divJantar.appendChild(checkAlimento);
+                            divJantar.appendChild(label);
+                        }  else if (Refeicao.refeicao == "Lanche da Tarde") {
+
+                            var divLanche = document.createElement("div");
+                            divLanche.setAttribute('class', 'alimento-lanche');
+
+                            label.innerHTML = Refeicao.qtd+" "+Refeicao.medida+" de "+Refeicao.descricao+"<hr>";
+                            checkAlimento.setAttribute('value',  Refeicao.qtd+" "+Refeicao.medida+" de "+Refeicao.descricao)
+                            document.getElementById("lanche-tarde").appendChild(divLanche);
+                            divLanche.appendChild(checkAlimento);
+                            divLanche.appendChild(label);
+                        } 
+                        cont++;
+
+                        size = cont;
+                    })                
+                });
+            });
+        }
+
+        //exibe o banco de alimentos na datalist do form de adicionar alimento
+        function showAlimentos () {
+
+            var cont = 0;
+            var id = 1;
+            var alimentos = makeRequest('/alimentos', 'GET');
+            alimentos.then(function (response) {
+                response.json().then(function(alimentos) {
+                    console.log(alimentos);
+                    alimentos.forEach(Alimento => {
+                        var elementoList = document.getElementById("alimentos");
+                        
+                        var elementoOp = document.createElement("option");
+                        elementoOp.setAttribute('onclick', 'getIdAlimento(this);');                        
+                        elementoOp.setAttribute('value', id);
+                        elementoOp.innerHTML = alimentos[cont].descricao;
+                        elementoOp.setAttribute('id', id);
+
+                        elementoList.appendChild(elementoOp);
+
+                        cont++;
+                        id++;
+                        
+                    })
+                    
+                })
+            })
+        }       
+        
+        //Retorna todas as dietas relacionadas ao paciente
+        function historicoDietas() {
+            var historico = makeRequest('/historicoDietas/'+idPac, 'GET');
+            historico.then(function(response) {
+                response.json().then(function(dietas) {
+                    console.log(dietas);
+                    dietas.forEach(Dieta => {
+                        var elementoH = document.createElement("h5");
+                        elementoH.innerHTML = Dieta.descricao+" <br>";
+                        document.getElementById("historico-dietas").appendChild(elementoH);
+
+                        var elementoSmall = document.createElement("small");
+
+                        if(Dieta.status == 'Ativa') {
+                            elementoSmall.style.color = 'rgba(6, 204, 6, 0.85)';
+                        } else {
+                            elementoSmall.style.color = 'rgb(255, 99, 132)';
+                        }
+
+                        elementoSmall.innerHTML = Dieta.status+"<hr>";
+                        document.getElementById("historico-dietas").appendChild(elementoSmall);
+                    })
+                })
+            })
+        }
+    
+        function sendConsumoBanco(fibras, proteinas, ferro, carboidratos, lipideos, calorias) {
+
+            var d = new Date();
+            var dias = [ 'Dom', 'Seg', 'Ter','Qua', 'Qui', 'Sex', 'Sab', 'Dom' ];
+
+            var today =  d.getFullYear()+"-"+(d.getMonth()+1)+"-"+ d.getDate();
+            const Item = {          
+                data: '"'+d.getFullYear()+"-"+(d.getMonth()+1)+"-"+ d.getDate()+'"',
+                fibras: fibras,           
+                proteinas: proteinas,           
+                ferro: ferro,           
+                carboidratos: carboidratos,          
+                lipideos: lipideos,           
+                calorias:  calorias         
+            }
+            var consumoDia = makeRequest('/graficoDiario/'+idPac, 'POST', JSON.stringify(Item));
+            consumoDia.then(function(response) {
+                response.json().then(function(consumoDia){
+                    console.log(consumoDia);
+                })
+            })
+        }
+        
+        function showDay() { 
+
+            var dias = [
+            'Domingo',
+            'Segunda-feira',
+            'Terça-feira',
+            'Quarta-feira',
+            'Quinta-feira',
+            'Sexta-feira',
+            'Sábado',        
+            ]
+            var today = new Date();
+
+            console.log(dias)
+
+            var p = document.createElement("p");
+            p.innerHTML = '<strong>Hoje é:</strong><br>'+ dias[today.getDay()]+"<br> "+
+                        today.getHours()+":"+today.getMinutes();
+            document.getElementById("dia-semana").appendChild(p);
+        }
+
+        showDietaDiario();
+        getPerfil();
+        getPaciente();
+        historicoDietas();
+        showAlimentos ()
+    </script>
+
+    <style>
+        html, body, h1, h2, h3, h4, h5 {font-family: "Open Sans", sans-serif}
+
+        #cafe, #almoco, #jantar{ max-height: 400px; overflow: auto;}
+    </style>
+    <body class="w3-theme-l5">
+
+    <!-- Navbar -->
+    <div class="w3-top">
+    <div class="w3-bar w3-left-align w3-large" style="background-color: #58af9b;">
+    <a class="w3-bar-item w3-button w3-hide-medium w3-hide-large w3-right w3-padding-large w3-hover-white w3-large " href="javascript:void(0);" onclick="openNav()" style="background-color: #58af9bb6;" ><i class="fa fa-bars"></i></a>
+    <a href="/homePaciente" class="w3-bar-item w3-button w3-padding-large" style="background-color: #58af9b;"><i class="fa fa-home w3-margin-right"></i>Início</a>
+    <a href="/nutricionistas" class="w3-bar-item w3-button w3-hide-small w3-padding-large w3-hover-white" title="Meu Nutricionista">Nutricionistas</a>
+    <a href="/diario" class="w3-bar-item w3-button w3-hide-small w3-padding-large w3-hover-white" title="Diário">Diário</a>
+    
+    <a onclick="loggoff();" href="/" class="w3-bar-item w3-button w3-hide-small w3-right w3-padding-large w3-hover-white" title="SAIR">
+        <img src="./img/softnutri.png"  alt="Avatar">
+    </a>
+    </div>
+    </div>
+
+    <!-- Navbar on small screens -->
+    <div id="navDemo" class="w3-bar-block w3-theme-d2 w3-hide w3-hide-large w3-hide-medium w3-large">
+    <a href="#" class="w3-bar-item w3-button w3-padding-large">Perfil</a>
+    <a href="./nutricionistaDetalhe.html" class="w3-bar-item w3-button w3-padding-large"> Nutricionistas</a>
+    <a href="./marcarConsulta.html" class="w3-bar-item w3-button w3-padding-large">Marcar Consulta</a>
+    <a href="#" class="w3-bar-item w3-button w3-padding-large">Diário</a>
+    </div>
+
+    <!-- Page Container -->
+    <div class="w3-container w3-content" style="max-width:1400px;margin-top:80px">    
+    <!-- The Grid -->
+    <div class="w3-row">
+        <!-- Left Column -->
+        <div class="w3-col m3">
+        <!-- Perfil Paciente e Histórico de dietas -->
+        <div class="w3-card w3-round w3-white">
+            <div id="perfil" class="w3-container">         
+                <div id="imgPerfil" style="width: 50%; margin-left: 25%; padding-top: 10px;">
+                </div>
+                <hr>
+                <div id="perfil-nome">
+
+                </div>
+                <div id="perfil-imc">
+
+                </div>
+                <div  class="w3-card w3-round w3-white">
+                    <div id="historico-dietas" class="w3-container" style="max-height: 550px; overflow: auto;">
+                        
+                        <h4 class="titulo">Histórico de dietas</h4>
+
+
+                        
+                    </div>
+                </div>
+                <br><br>
+            </div>
+        </div>
+        <br>      
+
+        <!-- End Left Column -->
+        </div> 
+        <!-- Middle Column -->
+        
+        <div class="w3-col m7">    
+
+            <div class="w3-row-padding">
+                <div class="w3-col m12">
+                    <div class="w3-card w3-round w3-white">
+                        <div class="w3-container w3-padding">
+
+                            <h2 class="titulo">Meu Diário</h2>
+                            <br>
+
+                            <div  class="w3-card w3-round w3-white" style="overflow-x: auto;">
+                                <div  class="w3-container">              
+                                    <form id="dieta-ativa">                    
+                                        <div id="top" style="display: grid; grid-template-columns: 1fr  1fr  1fr  1fr  1fr  1fr;">
+                                            <h6 class="w3-center"  style="padding-top: 10px; margin-left: 50%;">-Café da Manhã</h6>
+                                            <h6 class="w3-center" style="padding-top: 10px;margin-left: 100%;">-Almoço</h6>
+                                            <h6 class="w3-center" style="padding-top: 10px; margin-left: 150%;">-Lanche da tarde</h6>
+                                            <h6 class="w3-center"  style="padding-top: 10px; margin-left: 250%;">-Jantar</h6>
+                                            <h6 class="w3-center"  style="padding-top: 10px; margin-left: 300%;">-Ceia</h6>
+                                            <h6 class="w3-center"  style="padding-top: 10px; margin-left: 350%;">-Pós Treino</h6>
+                                        </div>
+
+                                        <div id="corpo">
+                                            <div id="cafe" class="form-check" title="Café da Manhã">
+
+                                            </div>
+                                        
+                
+                                            <div  id="almoco" class="form-check" title="Almoço">
+                                            
+                                            
+                                            </div>
+
+                                            <div  id="lanche-tarde" class="form-check" title="Lanche da Tarde">
+                                            
+                                            </div>
+                                    
+                                            <div id="jantar" class="form-check" title="Jantar">
+                                            
+                                            </div> 
+
+                                            <div  id="ceia" class="form-check" title="Ceia">
+                                            
+                                            
+                                            </div>
+
+                                            <div  id="pos-treino" class="form-check" title="Pós Treino">
+                                            
+                                            
+                                            </div>
+
+                                            
+                                        </div>
+                                        <div id="aviso">
+
+                                        </div> 
+                                        <br> 
+                                        <br>   
+                                    </form> 
+                                    <div class="form-buttons">
+                                        <button class="button fit" onclick="calcConsumo()">Calcular Consumo</button>
+                                        
+                                        <button style="float: right;" class="button fit" onclick="openModal('modal-dieta')">Adicionar Alimento</button>
+                                    </div>
+                                    <br> <br>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Gráfico de consumo diário -->
+                        <div id="grafico">
+                            <div  id="items-wrapper" class="w3-container w3-card w3-white w3-round w3-margin"><br>
+
+                                <div  id="evolucao" class="itens">
+                                    
+                                </div>
+
+                            <!--Fim Gráfico de consumo diário -->
+                            </div>
+                        </div>      
+                        <br><br><br> 
+                    </div>
+                    
+                </div>
+            </div>
+            <br>
+        <!-- End Middle Column -->
+        </div>    
+    
+        <!-- Right Column --> 
+        <div class="w3-col m2">
+            <div class="w3-card w3-round w3-white w3-center">
+            <div id="dia-semana" class="w3-container">
+                
+            </div>
+            </div>
+            <br><br>
+            <div class="w3-card w3-round w3-white w3-center">
+            
+            <div class="calendar" id="calendar" style="width: 100%;">
+    
+                <div class="calendar-btn month-btn" onclick="$('#months').toggle('fast')" 
+                style="background-color: white; color: #58af9b;">
+                    <span id="curMonth"></span>
+                    <div id="months" class="months dropdown"></div>
+                </div>
+            
+                <div class="calendar-btn year-btn" onclick="$('#years').toggle('fast')"
+                style="background-color: white; color: #58af9b;">
+                    <span id="curYear"></span>
+                    <div id="years" class="years dropdown"></div>
+                </div>
+            
+                <div class="clear"></div>
+            
+                <div class="calendar-dates">
+                    <div class="days">
+                        <div class="day label">D</div>
+                        <div class="day label">S</div>
+                        <div class="day label">T</div>
+                        <div class="day label">Q</div>
+                        <div class="day label">Q</div>
+                        <div class="day label">S</div>
+                        <div class="day label">S</div>
+            
+                        <div class="clear"></div>
+                    </div>        
+                    <div id="calendarDays" class="days">
+                    </div>
+                </div>
+            </div> 
+            
+            </div>
+            <br>
+        <!--End Right Column -->
+        </div>
+    </div>
+    
+    
+    </div>
+    
+    <!-- End Page Container -->
+    </div>
+    <br><br><br><br><br>
+
+    <!-- Footer -->
+    <footer>
+        <div id="modal-dieta" class="modal-container mostrar">
+            <div class="modal-dieta">
+                <button id="close" class="btn-close"  onclick="closeModal('modal-dieta')"></button>
+                <h3 class="subtitulo">Itens Dieta</h3>
+                <div id="nutrientes">
+
+                </div>
+                <form id="addItens">
+                    <br>
+                    <select  id="alimentos" type="text" class="form-select form-select-lg mb-3" aria-label=".form-select-lg example" placeholder="Alimento" name="id_alimento">
+                    
+                    </select>
+                <div id="add-alimento">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; grid-gap: 10px; width: 100%;">
+                        <input id="qtd" type="number" class="input" placeholder="Quantidade" name="qtd"style="width: 100%;">           
+
+                        <select id="medidas" type="text" class="form-select form-select-lg mb-3" aria-label=".form-select-lg example" name="medida"
+                        style="width: 100%;">               
+                            <option value="g" >g</option>
+                            <option value="L" >L</option>
+                            <option value="kg">kg</option>
+                            <option value="ml" >ml</option>
+                        </select>
+                        <br>
+                    </div>
+
+                    
+                </div>  
+                <button id="add" onclick=" getAlimento()" class="button fit">Adicionar</button>             
+                </form>
+                <button id="save" onclick="addAlimento(0);" class="button fit" style="display: none; float: center;">Salvar</button>
+                
+            </div>
+        </div>
+        <div style="background-color: #eff7f5ce; width: 100%; height: 400px;"></div>
+
+        <div  class="w3-bar-block w3-theme-d2" style="display: flex; flex-direction: column; align-items: center;">
+        Copy&copy;Right
+        <img src="./img/softnutrillogo.PNG" alt="">
+        </div>
+    </footer> 
+
+    <script>
+        
+    var months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    var startYear = 2000;
+    var endYear = 2020;
+    var month = 0;
+    var year = 0;
+    var selectedDays = new Array();
+    var mousedown = false;
+    var mousemove = false;
+
+    function loadCalendarMonths() {
+        for (var i = 0; i < months.length; i++) {
+            var doc = document.createElement("div");
+            doc.innerHTML = months[i];
+            doc.classList.add("dropdown-item");
+
+            doc.onclick = (function () {
+                var selectedMonth = i;
+                return function () {
+                    month = selectedMonth;
+                    document.getElementById("curMonth").innerHTML = months[month];
+                    loadCalendarDays();
+                    return month;
+                }
+            })();
+
+            document.getElementById("months").appendChild(doc);
+        }
+    }
+
+    function loadCalendarYears() {
+        document.getElementById("years").innerHTML = "";
+
+        for (var i = startYear; i <= endYear; i++) {
+        var doc = document.createElement("div");
+        doc.innerHTML = i;
+        doc.classList.add("dropdown-item");
+
+        doc.onclick = (function () {
+            var selectedYear = i;
+            return function () {
+                year = selectedYear;
+                document.getElementById("curYear").innerHTML = year;
+                loadCalendarDays();
+                return year;
+            }
+        })();
+
+        document.getElementById("years").appendChild(doc);
+        }
+    }
+
+    function loadCalendarDays() {
+        document.getElementById("calendarDays").innerHTML = "";
+
+        var now = new Date();
+
+        var tmpDate = new Date(year, month, 0);
+        var num = daysInMonth(month, year);
+        var dayofweek = tmpDate.getDay();       // find where to start calendar day of week
+
+        for (var i = 0; i <= dayofweek; i++) {
+            var d = document.createElement("div");
+            d.classList.add("day-home");
+            d.classList.add("blank");
+            document.getElementById("calendarDays").appendChild(d);
+        }
+
+        for (var i = 0; i < num; i++) {
+        var tmp = i + 1;
+        var d = document.createElement("div");
+        d.id = "calendarday_" + tmp;
+        d.className = "day-home";
+        d.innerHTML = tmp;
+        d.dataset.day = tmp;
+
+        if(tmp == now.getDate()) {
+            d.style.backgroundColor = "#58af9bb2";
+        }
+
+        d.addEventListener('click', function(){
+            this.classList.toggle('selected');
+
+            if (!selectedDays.includes(this.dataset.day))
+                selectedDays.push(this.dataset.day);
+
+            else
+                selectedDays.splice(selectedDays.indexOf(this.dataset.day), 1);
+        });
+
+        d.addEventListener('mousemove', function(e){
+        e.preventDefault();
+            if (mousedown)
+            {
+                this.classList.add('selected');
+
+                if (!selectedDays.includes(this.dataset.day))
+                    selectedDays.push(this.dataset.day);
+            }
+        });
+
+        d.addEventListener('mousedown', function(e){
+            e.preventDefault();
+            mousedown = true;
+        });
+            
+        d.addEventListener('mouseup', function(e){
+            e.preventDefault();
+            mousedown = false;
+        });
+
+        document.getElementById("calendarDays").appendChild(d);
+        }
+
+        var clear = document.createElement("div");
+        clear.className = "clear";
+        document.getElementById("calendarDays").appendChild(clear);
+    }
+
+    function daysInMonth(month, year) {
+        var d = new Date(year, month+1, 0);
+        return d.getDate();
+    }
+    showDay();
+    window.addEventListener('load', function () {
+        var date = new Date();
+        month = date.getMonth();
+        year = date.getFullYear();
+        document.getElementById("curMonth").innerHTML = months[month];
+        document.getElementById("curYear").innerHTML = year;
+        loadCalendarMonths();
+        loadCalendarYears();
+        loadCalendarDays();
+    });
+
+    </script>
+    <script>
+    function exibeGrafico () {
+        var resultados = [];
+        var pegaResult = makeRequest('/diario/'+idPac, 'GET');
+        pegaResult.then(function(response) {
+            response.json().then(function(diario) {
+                console.log(diario);
+                var cont = 0;
+                if(diario.length == 0) {
+                    var elementoH = document.createElement("h6");
+                    elementoH.innerHTML = 'Você não possui nenhum cálculo de consumo registrado.'
+                    document.getElementById("evolucao").appendChild(elementoH);
+                }
+                diario.forEach(Resultado =>{ 
+                    
+                    var canvas = document.createElement("canvas");
+                    canvas.setAttribute('id', 'chartEvolucao'+cont);
+                    canvas.setAttribute('class', 'item');
+                    document.getElementById("evolucao").appendChild(canvas);               
+
+                var dados =  Resultado.created_at;
+                console.log(dados);
+                var [data, hora] = dados.split("T");
+                var [ano, mes, dia] = data. split("-");
+
+                var today = dia+"/"+mes+"/"+ano;
+                
+                
+                
+                var ctx = document.getElementById('chartEvolucao'+cont).getContext('2d');
+                var chart = new Chart(ctx, {  
+                        type: 'doughnut',
+                        data: {
+                        
+                            datasets: [
+                                {
+                                    label: dia+"/"+mes+"/"+ano,
+                                    borderWidth: 6,
+                                    backgroundColor: ['rgb(255, 99, 132)', 'rgba(6, 204, 6, 0.85)', 'rgba(77, 166, 253, 0.85)', '#cc65fe', '#ffce56'],
+                                    data: [ Resultado.fibras,  Resultado.proteinas,  Resultado.ferro,  Resultado.carboidratos,  Resultado.lipideos]
+                                },            
+                            ] , 
+                            labels : [
+                                'Fibras',
+                                'Proteínas',
+                                'Ferro',
+                                'Carboidratos',
+                                'Lipideos'
+                            ]
+                        },
+
+                        // Configuration options go here
+                        options: {
+                            title: {
+                                display: true,
+                                text: 'Consumo do dia '+today +
+                                "         Calorias:"+Resultado.calorias,       
+                            }
+                        }
+                    });
+                cont++;
+                })
+            })
+        })
+
+        
+        var ctx = document.getElementById('chartEvolucao').getContext('2d');
+    
+    }
+
+    function getAlimento() {
+
+        var myForm = document.getElementById("addItens");    
+        myForm.addEventListener('submit', function(e){
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            var idAlimento = formData.get("id_alimento");
+
+            var enviaItens = makeRequest('/verAlimento/'+idAlimento, 'GET');
+            enviaItens.then(function(response){
+                response.json().then(function(itens){                      
+                    console.log(itens);
+                    
+
+                    var alimento = {
+                        calorias: itens[0].calorias,
+                        carboidratos: itens[0].carboidratos,
+                        ferro: itens[0].ferro,
+                        proteinas: itens[0].proteinas,
+                        fibras: itens[0].fibras,
+                        isMarked: itens[0].isMarked,
+                        lipideos: itens[0].lipideos,
+                        qtd: formData.get("qtd"),
+                        medida: formData.get("medida"),
+                    }
+
+                    alimentoDia  = [alimento];
+
+                    var elementoH = document.createElement("h6");
+                    elementoH.innerHTML = itens[0].descricao+"<br> Fibras: "+itens[0].proteinas+"g por 100g Ferro: "+
+                                        itens[0].ferro+"g por 100g <br> Carboidratos: "+itens[0].carboidratos+
+                                        "g por 100g : Gorduras"+itens[0].lipideos+"g por 100g Calorias: "+itens[0].calorias;
+                    document.getElementById("nutrientes").appendChild(elementoH);
+                    document.getElementById("add").style.display = "none";
+                    document.getElementById("alimentos").style.display = "none";
+                    document.getElementById("save").style.display = "block";
+
+                }).catch(function(error) {
+                    console.log(error);
+                }) 
+                }).catch(function(error) {
+                    console.log(error);
+            })
+        })
+    }
+
+    exibeGrafico();
+        
+    // Accordion
+    function myFunction(id) {
+    var x = document.getElementById(id);
+    if (x.className.indexOf("w3-show") == -1) {
+        x.className += " w3-show";
+        x.previousElementSibling.className += " w3-theme-d1";
+    } else { 
+        x.className = x.className.replace("w3-show", "");
+        x.previousElementSibling.className = 
+        x.previousElementSibling.className.replace(" w3-theme-d1", "");
+    }
+    }
+
+    // Used to toggle the menu on smaller screens when clicking on the menu button
+    function openNav() {
+    var x = document.getElementById("navDemo");
+    if (x.className.indexOf("w3-show") == -1) {
+        x.className += " w3-show";
+    } else { 
+        x.className = x.className.replace(" w3-show", "");
+    }
+    }
+    </script>
+
+    <script
+    src="https://code.jquery.com/jquery-3.4.1.min.js"
+    integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo="
+    crossorigin="anonymous">
+    </script>
+    <script src="./js/scripts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/js/bootstrap.bundle.min.js" integrity="sha384-ygbV9kiqUc6oa4msXn9868pTtWMgiQaeYH7/t7LECLbyPA2x65Kgf80OJFdroafW" crossorigin="anonymous"></script>
+
+    </body>
+</html> 

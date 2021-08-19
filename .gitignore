@@ -1,0 +1,10 @@
+node_modules 
+
+tmp/uloads/*
+!tmp/uploads/.gitkeep
+
+config/database.js
+
+yarn.lock
+
+exemplos.js

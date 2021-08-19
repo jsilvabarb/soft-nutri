@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewpor
+        t" content="width=device-width, initial-scale=1.0">
+        <meta http-equiv="X-UA-Compatible" content="ie=edge">
+        <title>Login</title>
+        <link rel="stylesheet" href="./css/estiloLogin.css">
+        <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.8.2/css/all.css"
+            integrity="sha384-oS3vJWv+0UjzBfQzYUhtDYW+Pj2yciDJxpsK1OYPAYjqT085Qq/1cq5FLXAZQ7Ay" crossorigin="anonymous">
+
+        <script>
+            async function makeRequest(url, method, payload) {         
+            
+            var myHeader = new Headers(); 
+            myHeader.append('Content-type' ,'application/json;charset=UTF-8');       
+                
+            return response = await fetch(url, {
+                method: method,
+                mode: 'cors',
+                headers: myHeader,
+                body:payload,
+            });
+    
+        }
+        </script>
+    </head>
+    <body>
+        <div class="container">
+            <div class="content first-content">
+                <div class="first-column">
+                    <h2 class="title title-primary">Seja bem vindo (a)!</h2>
+                    <p class="description description-primary">Ja tem cadastro?</p>
+                    <p class="description description-primary">por favor insira aqui suas informações para prosseguir</p>
+                    <button id="signin" class="btn btn-primary">Entrar</button>
+                </div>    
+                <div class="second-column">
+                    <h2 class="title title-second">Não perca tempo!</h2>
+                    <p class="description" style="text-align: justify;">Nosso intuito é alcançar profissionais recém formados na área de nutrição,</p> 
+                    <p class="description" style="text-align: justify;">além de atrair pacientes que buscam por um atendimento prático e acessível e, assim, </p> 
+                                
+                    <p class="description" style="text-align: justify;">através da plataforma, construir uma ponte entre nutricionistas e pacientes com o </p>                    
+                    <p class="description" style="text-align: justify;"> objetivo de mudar vidas e incentivar e incentivar uma vida mais saudável!</p>
+                    
+                
+                    <p class="description description-second">Fidelize pacientes e adquira experiência!</p>
+                    <p >CADASTRE-SE</p>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; grid-gap: 15px;">
+                        <button id="registro-nutricionista" class="btn btn-second">Nutricionista</button>
+                        <button id="registro-paciente" class="btn btn-second">Paciente</button>
+                    </div>
+                    
+                </div>
+            </div>
+            <div class="content second-content">
+                <div class="first-column">
+                    <h2 class="title title-primary">Quem somos?</h2>
+                    <p class="description description-primary">Conheça nossos objetivos</p>
+                    <button id="signup" class="btn btn-primary">Sobre nós</button>
+                </div>
+                <div class="second-column">
+                    <h2 class="title title-second"> <img src="./img/softnutrillogo.PNG"  alt="Avatar"></h2>
+                    
+                    <p class="description description-second">Entre com seu email de cadastro:</p>
+                    <form id="login">               
+                        <label class="label-input-singin" for="">
+                            <i class="far fa-envelope icon-modify"></i>
+                            <input type="email" name="email" placeholder="Email">
+                        </label>
+                    
+                        <label class="label-input-singin" for="">
+                            <i class="fas fa-lock icon-modify"></i>
+                            <input type="password" name="senha" placeholder="Senha">
+                        </label>
+                    
+                        <a class="password" href="./forgotpassword.html">Esqueceu sua senha?</a>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; grid-gap: 15px; margin-left: -20%;">
+                            <button id="entrar-nutri" class="btn btn-second" type="submit">Logar Nutri</button>
+                            <button id="entrar-pac" class="btn btn-second" type="submit">Logar Pac</button>
+                        </div>
+                    </form>
+                </div>
+            </div>        
+            
+        </div>
+        <div id="modalRegistro-nutri">
+            <button id="back" class="btn btn-second">Voltar</button><br><br>
+            <h2 class="title title-second">Cadastro de Nutricionista</h2><br><br>
+            <form id="cad-nutri" class="form">
+                <label class="label-input" for="">
+                    <i class="far fa-user icon-modify"></i>
+                    <input type="text" name="nome" placeholder="Nome">
+                </label>
+                
+                <label class="label-input" for="">
+                    <i class="far fa-user icon-modify"></i>
+                    <input type="text" name="sobrenome" placeholder="Sobrenome">
+                </label>
+                
+                <label class="label-input" for="">
+                    <i class="far fa-envelope icon-modify"></i>
+                    <input type="email" name="email" placeholder="Email">
+                </label>
+
+                <label class="label-input" for="">
+                    <i class="fas fa-phone-volume icon-modify"></i>
+                    <input type="tel" name="tel" placeholder="Telefone">
+                </label>
+
+                <label class="label-input" for="">
+                    <i class="fas fa-genderless icon-modify"></i>
+                    <select name="sexo" class="label-input">
+                        <option value="Feminino">Feminino</option>
+                        <option value="Masculino">Masculino</option>
+                        <option value="Outro">Outro</option>
+                    </select>
+                </label>
+
+                <label class="label-input" for="">
+                    <i class="fas fa-calendar-day icon-modify"></i>
+                    <input type="date" name="nascimento" placeholder="Data de Nascimento">
+                </label>
+
+                <label class="label-input" for="">
+                    <i class="fas fa-certificate icon-modify"></i>
+                    <input type="text" name="crn" placeholder="CRN">
+                </label>
+
+                <label class="label-input" for="">
+                    <i class="fas fa-university icon-modify"></i>
+                    <input type="text" name="universidade" placeholder="Universidade">
+                </label>
+
+                <label class="label-input" for="">
+                    <i class="fas fa-user-graduate icon-modify"></i>
+                    <input type="date" name="formacao" placeholder="Data de Formação">
+                </label>
+
+                <label class="label-input" for="">
+                    <i class="fas fa-lock icon-modify"></i>
+                    <input type="password" name="senha" placeholder="Senha">
+                </label>                  
+                
+                <button class="btn btn-second" type="submit">Registrar</button>        
+            </form>
+    </div>
+
+    <div id="modalRegistro-paciente">
+        <button id="back-index" class="btn btn-second">Voltar</button>
+        <br> <br>
+        <h2  class="title title-second">Cadastro de Paciente</h2><br><br>
+        <form id="cad-pac" class="form" action="/cadastroPaciente" method="POST">
+            <label class="label-input" for="">
+                <i class="far fa-user icon-modify"></i>
+                <input type="text" name="nome" placeholder="Nome">
+            </label>
+            
+            <label class="label-input" for="">
+                <i class="far fa-user icon-modify"></i>
+                <input type="text" name="sobrenome" placeholder="Sobrenome">
+            </label>
+            
+            <label class="label-input" for="">
+                <i class="far fa-envelope icon-modify"></i>
+                <input type="email" name="email" placeholder="Email">
+            </label>
+
+            <label class="label-input" for="">
+                <i class="fas fa-phone-volume icon-modify"></i>
+                <input type="tel" name="tel" placeholder="Telefone">
+            </label>
+
+            <label class="label-input" for="">
+                <i class="fas fa-genderless icon-modify"></i>
+                <select name="sexo" class="label-input">
+                    <option value="Feminino">Feminino</option>
+                    <option value="Masculino">Masculino</option>
+                    <option value="Outro">Outro</option>
+                </select>
+            </label>
+
+            <label class="label-input" for="">
+                <i class="fas fa-calendar-day icon-modify"></i>
+                <input type="date" name="data_nasc" placeholder="Data de Nascimento">
+            </label>
+
+            <label class="label-input" for="">
+                    <i class="fas fa-calendar-day icon-modify"></i>
+                    <input type="text" name="peso" placeholder="Peso em kg">
+                </label>
+
+                <label class="label-input" for="">
+                    <i class="fas fa-calendar-day icon-modify"></i>
+                    <input type="text" name="altura" placeholder="Altura em metros">
+                </label>
+
+            <label class="label-input" for="">
+                <i class="fas fa-lock icon-modify"></i>
+                <input type="password" name="senha" placeholder="Senha">
+            </label>                  
+            
+            <button class="btn btn-second" type="submit">Registrar</button>        
+        </form>
+    </div>
+
+        <script>
+            function cadastroPaciente() {
+
+                var myForm = document.getElementById("cad-pac");
+
+                myForm.addEventListener('submit', function(e){
+                    e.preventDefault();
+
+                    const formData = new FormData(this);
+
+                    const Item = {
+                        nome:formData.get('nome'),
+                        sobrenome:formData.get('sobrenome'),
+                        email:formData.get('email'),
+                        telefone:formData.get('tel'),
+                        sexo:formData.get('sexo'),
+                        data_nascimento:formData.get('data_nasc'),
+                        peso:formData.get('peso'),
+                        altura:formData.get('altura'),
+                        senha:formData.get('senha'),
+                    }
+
+                    
+
+                    console.log(Item);
+                    
+                    var enviaItens = makeRequest('/cadastroPacientes', 'POST', JSON.stringify(Item));
+                    enviaItens.then(function(response){
+                        response.text().then(function(itens){
+                            console.log(itens);
+                        }).catch(function(error) {
+                            console.log(error);
+                        }) 
+                    }).catch(function(error) {
+                        console.log(error);
+                    })
+
+                });
+            }
+
+            function cadastroNutricionista() {
+
+            var myForm = document.getElementById("cad-nutri");
+
+                myForm.addEventListener('submit', function(e){
+                    e.preventDefault();
+
+                    const formData = new FormData(this);
+
+                    const Item = {
+                        nome:formData.get('nome'),
+                        sobrenome:formData.get('sobrenome'),
+                        email:formData.get('email'),
+                        telefone:formData.get('tel'),
+                        sexo:formData.get('sexo'),
+                        data_nascimento:formData.get('nascimento'),
+                        crn:formData.get('crn'),
+                        universidade:formData.get('universidade'),
+                        data_formacao:formData.get('formacao'),
+                        senha:formData.get('senha'),
+                    }
+
+                    console.log(Item);
+                    
+                    var enviaItens = makeRequest('/cadastroNutricionistas', 'POST', JSON.stringify(Item));
+                    enviaItens.then(function(response){
+                        response.text().then(function(itens){
+                            console.log(itens);
+                            var msg = document.createElement("div");
+                            msg.setAttribute('id', 'msg-success');
+                            msg.innerHTML = "Nutricionista registrado com sucesso!";
+
+                            setTimeout(function(){ msg.style.display= "none"; }, 3000);
+                            document.getElementById("modalRegistro-nutri").appendChild(msg);
+                        }).catch(function(error) {
+                            console.log(error);
+                        }) 
+                    }).catch(function(error) {
+                        console.log(error);
+                    })
+
+                });
+            }
+
+            function loginNutri() {
+                var myForm = document.getElementById("login");
+
+                myForm.addEventListener('submit', function(e){
+                    e.preventDefault();
+
+                    const formData = new FormData(this);
+
+                    const Item = {
+                        email:formData.get('email'),
+                        senha:formData.get('senha'),
+                    }
+
+                    console.log(Item);
+
+                    var jwtToken;
+                    
+                    var enviaItens = makeRequest('/loginNutricionista', 'POST', JSON.stringify(Item));
+                    enviaItens.then(function(response){
+                        response.text().then(function(itens){
+                            console.log(itens);
+
+                            var [value1, value2 ] = itens.split(','); 
+                            
+                            var [ a, b, c, token, d ] = value1.split('"');
+
+                            var [i, z] = value2.split(':');
+
+                            var [idNutri, y] = z.split('}');                       
+
+                            localStorage.setItem('token', token);
+                            localStorage.setItem('idNutri', idNutri);
+
+                        var goHome = makeRequest('/home', 'GET');
+                        goHome.then(function(response) {
+                            console.log( response.url)
+                            window.location.href= response.url;
+                            
+                        })
+
+                            
+                        }).catch(function(error) {
+                            console.log(error);
+                        }) 
+                    }).catch(function(error) {
+                        console.log(error);
+                    })
+
+                });
+            }
+
+            function loginPac() {
+                var myForm = document.getElementById("login");
+
+                myForm.addEventListener('submit', function(e){
+                    e.preventDefault();
+
+                    const formData = new FormData(this);
+
+                    const Item = {
+                        email:formData.get('email'),
+                        senha:formData.get('senha'),
+                    }
+
+                    console.log(Item);
+
+                    
+                    
+                    var enviaItens = makeRequest('/loginPaciente', 'POST', JSON.stringify(Item));
+                    enviaItens.then(function(response){
+                        response.text().then(function(itens){
+                            console.log(itens);
+
+                            var [value1, value2 ] = itens.split(','); 
+                            
+                            var [ a, b, c, token, d ] = value1.split('"');
+
+                            var [i, z] = value2.split(':');
+
+                            var [idPac, y] = z.split('}');   
+                            
+                            console.log([token, idPac]);
+
+                            localStorage.setItem('token', token);
+                            localStorage.setItem('idPac', idPac);
+
+                        var goHome = makeRequest('/homePaciente', 'GET');
+                        goHome.then(function(response) {
+                            console.log( response.url)
+                            window.location.href= response.url;                         
+                        })                        
+                        }).catch(function(error) {
+                            console.log(error);
+                        }) 
+                    }).catch(function(error) {
+                        console.log(error);
+                    })
+
+                });
+            }
+
+        
+        </script>
+        <script src="./js/scriptLogin.js"></script>
+    </body>
+</html>

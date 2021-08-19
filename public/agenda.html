@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home|Softnutri</title>
+    <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+    <link rel="stylesheet" href="https://www.w3schools.com/lib/w3-theme-blue-grey.css">
+    <link rel='stylesheet' href='https://fonts.googleapis.com/css?family=Open+Sans'>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-giJF6kkoqNQ00vy+HMDP7azOuL0xtbfIcaT9wjKHr8RbDVddVHyTfAAsrekwKmP1" crossorigin="anonymous">
+    <link  href="./css/estilo.css" rel="stylesheet">
+
+    <style>
+        html, body, h1, h2, h3, h4, h5 {font-family: "Open Sans", sans-serif}
+        a {
+            text-decoration: none;
+            color: #fff;
+        }
+    </style>
+
+    <script>
+
+        //Constantes globais
+        const idNutri = localStorage.getItem("idNutri");
+        const jwtToken= localStorage.getItem("token");
+
+        //Função assíncrona para autenticação
+        async function makeRequest(url, method, payload) {        
+
+            if(jwtToken) {
+                // headers['Authorization'] = 'Bearer ' + jwtToken;
+                var content = 'Bearer ' + jwtToken;
+                var myHeader = new Headers();
+                
+                myHeader.append('Content-type' ,'application/json;charset=UTF-8')
+                myHeader.append('Authorization', content)
+
+            }    
+            return response = await fetch(url, {
+                method: method,
+                mode: 'cors',
+                headers: myHeader,
+                body:payload,
+            });
+        }
+
+        //Função para deslogar usuário
+       function loggoff() {
+           localStorage.removeItem('token');
+           localStorage.removeItem('idNutri');
+       }         
+       
+       //Exibe Consultas do Dia
+       function showConsultas() {
+           var meses = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"]
+
+           var now = new Date();
+           var year = now.getFullYear();
+           var mounth = meses[now.getMonth()];
+           var day = now.getDate();
+           var date = year +'-' + mounth + '-' + day +'"';    
+           var url = '/nutris/consultas/'+idNutri+ date;
+           var cont = 0;
+
+           var nutris = makeRequest('/nutris/consultas/'+idNutri+'/'+date, 'GET');
+           nutris.then(function(response) {
+               response.json().then(function(nutriConsultas) {
+                   console.log(nutriConsultas);                   
+                   if(nutriConsultas.length > 0) {
+                       var dataCosulta = '';
+                       nutriConsultas.forEach(Consulta => {
+                           var elementoH = document.createElement("h5");
+
+                           var dataAndHora = Consulta.hora;
+
+                           var parts = dataAndHora.split('T');
+
+                           var [data, hora] = parts;
+
+                           var partsData = data.split('-');
+                           var partsHora = hora.split('.')
+
+                           //dataCosulta = partsData[2] +"/"+ partsData[1] +"/"+ partsData [0];
+                           var horaConsulta = partsHora[0];
+
+                           console.log(horaConsulta);
+
+                           elementoH.innerHTML = "<br>"+ Consulta.nome + " "+ Consulta.sobrenome + " |Horário: "+  horaConsulta+"<hr>";                 
+                           document.getElementById("consultas").appendChild(elementoH);
+                           cont++;
+                       });
+                       //document.getElementById("listaconsultas").innerText = dataCosulta;
+                   } else {
+                       var elementoH = document.createElement("h6");
+                       elementoH.innerHTML = "Você não possui nenhuma consulta marcada para hoje";                 
+                       document.getElementById("consultas").appendChild(elementoH);
+                   }
+               });
+           });
+       }
+       
+       //Exibe Pacientes
+       function  showPacientes(){
+            
+            var pacientes = makeRequest('/allPacientes/', 'GET');
+            pacientes.then(function(response) {
+                response.json().then(function(pacientes) {
+                    console.log(pacientes);
+                    var divList = document.getElementById("pacientes");
+                    var cont = 1;
+                    pacientes.forEach(Paciente => {
+                        var elementoOp = document.createElement("option");
+                        elementoOp.setAttribute('id', Paciente.id);
+                        elementoOp.setAttribute('value', Paciente.id);
+                        elementoOp.innerHTML = Paciente.nome+" "+Paciente.sobrenome;
+
+                        divList.appendChild(elementoOp);
+                        cont++;
+                    })
+                })
+            })
+               
+        }
+
+        //Exibe todas as consultas
+        function showAllConsultas() {          
+
+                var nutris = makeRequest('/nutrisAllConsultas/'+idNutri, 'GET');
+                nutris.then(function(response) {
+                response.json().then(function(consultas) {
+                    console.log(consultas);          
+                    var cont =0;
+                    if (consultas.length > 0) {
+                        consultas.forEach(Consulta => {
+                            var elementoDiv = document.createElement("div");
+                            elementoDiv.setAttribute('id', 'consulta'+cont);
+                            elementoDiv.setAttribute('class', 'consulta');
+                            document.getElementById("consultas-nutris").appendChild(elementoDiv);
+
+                            var elementoH = document.createElement("h5");
+                            elementoH.innerHTML = "Paciente: "+Consulta.nome +" "+Consulta.sobrenome;
+
+                            var data = Consulta.data;
+                            var [ano, mes, dia] = data.split("-");
+
+                            var horas = Consulta.hora;
+                            var [d, h] = horas.split("T");
+                            var [hora, min, seg] = h.split(":");
+
+                            var elementoHr = document.createElement("hr");
+
+                            var elementoBtn = document.createElement("button");
+                            elementoBtn.setAttribute('onclick', 'cancelarConsulta(this)')
+                            elementoBtn.setAttribute('id', Consulta.id);
+                            elementoBtn.setAttribute('class', 'cancelar');
+                            elementoBtn.innerHTML="Cancelar";
+                            
+                            var elementoSmall = document.createElement("small");
+                            elementoSmall.innerHTML = "Dia "+dia+"-"+mes+"-"+ano+" Hora: "+hora+":"+min+" <strong>"+Consulta.status+"</strong>";
+
+                            elementoDiv.appendChild(elementoH);         
+                            elementoDiv.appendChild(elementoSmall); 
+                            if(Consulta.status != "cancelada") {
+                            elementoDiv.appendChild(elementoBtn);
+                            }
+                            elementoDiv.appendChild(elementoHr);        
+                            cont++;
+                        });               
+                    } else {
+                        var elementoH = document.createElement("h6");
+                        elementoH.innerHTML = "<strong>Você não possui nenhuma consulta marcada.</strong>";
+                        document.getElementById("consultas-nutris").appendChild(elementoH);
+                    }
+                });
+            });
+        }
+
+        //Função que dá ação de cancelamento de 
+        //Consulta ao usuário
+        function cancelarConsulta(componente){
+            var idCon = componente.getAttribute('id');
+
+            var cancelConsulta = makeRequest('/nutriCancelarConsulta/'+idNutri+'/'+idCon, 'PUT');
+            cancelConsulta.then(function(response) {
+                response.json().then(function(consultaAtualizada) {
+                console.log(consultaAtualizada);
+                location.reload();
+                })
+            })
+        }
+        
+        //Exibindo todas as consultas do dia
+        showConsultas();
+       
+    </script>
+
+<body class="w3-theme-l5">
+    <header>
+       <!-- Navbar -->
+            <div class="w3-top">
+                <div class="w3-bar w3-left-align w3-large" style="background-color: #58af9b;">
+                <a class="w3-bar-item w3-button w3-hide-medium w3-hide-large w3-right w3-padding-large w3-hover-white w3-large " href="javascript:void(0);" onclick="openNav()" style="background-color: #58af9bb6;" ><i class="fa fa-bars"></i></a>
+                <a href="./home.html" class="w3-bar-item w3-button w3-padding-large" style="background-color: #58af9b;"><i class="fa fa-home w3-margin-right"></i>Início</a>
+                <a href="./pacientes.html" class="w3-bar-item w3-button w3-hide-small w3-padding-large w3-hover-white" title="Pacientes">Pacientes</a>
+                <a href="./agenda.html" class="w3-bar-item w3-button w3-hide-small w3-padding-large w3-hover-white" title="Calendário">Agenda</a>
+                <a href="./dietas.html" class="w3-bar-item w3-button w3-hide-small w3-padding-large w3-hover-white" title="Dietas">Dietas</a>
+               
+                <a onclick="loggoff();" href="/" class="w3-bar-item w3-button w3-hide-small w3-right w3-padding-large w3-hover-white" title="SAIR">
+                    <img src="./img/softnutri.png"  alt="Avatar">
+                  </a>
+                </div>
+            </div>
+            
+        <!-- Navbar on small screens -->
+            <div id="navDemo" class="w3-bar-block w3-theme-d2 w3-hide w3-hide-large w3-hide-medium w3-large">
+                <a href="#" class="w3-bar-item w3-button w3-padding-large">Perfil</a>
+                <a href="./pacientes.html" class="w3-bar-item w3-button w3-padding-large">Pacientes</a>
+                <a href="./agenda.html" class="w3-bar-item w3-button w3-padding-large">Agenda</a>
+                <a href="./dietas.html" class="w3-bar-item w3-button w3-padding-large">Dietas</a>
+                <hr>
+                <a onclick="loggoff();" href="/" class="w3-bar-item w3-button w3-padding-large">SAIR</a>
+            </div>
+            </div>
+    </header>
+        
+      <br>
+      <!-- Container -->
+      <div class="w3-container w3-content" style="max-width:1400px;margin-top:80px">
+        
+        <div id="msg-aviso">
+
+        </div>
+         <!-- Left Column -->
+         <div class="w3-col m3">
+            <!-- Pacientes do Dia -->
+    
+            <div class="w3-card w3-round w3-white" style="width: 90%;">
+                <div class="w3-container" style="max-height: 300px; overflow: auto;">
+                    <h6 class="w3-opacity">Consultas do Dia</h6>
+                    <hr>
+                    <div id="consultas">
+
+                    </div>
+                </div>
+            </div>
+            <br>
+            <div class="w3-card w3-round w3-white" style="width: 90%;">
+              <div class="w3-container">
+               <h4 class="titulo"  style="padding: 10px;">Legenda</h4>
+               <p><i style="background-color: #55c23fde; color: #55c23fde;">i</i> Dia Tranquilo</p>
+               <p><i style="background-color: #fac16b; color: #fac16b;">i</i> + 5 Consultas</p>
+               <p><i style="background-color: #fd442cde; color: #fd442cde;">i</i> Dia cheio!</p>
+              </div>
+              <br>
+              <p><button class="w3-button w3-block w3-theme-l4" onclick="openModal('modal-consultas'), showAllConsultas();"><i class="fa fa-book"></i>Todas consultas</button></p>
+              <br>
+            </div>
+            <br>
+          </div>
+          <!-- End Left Column -->
+          <br>
+          <!-- Middle Columns -->
+        <div class="w3-col m7">     
+         
+            <div class="calendar" id="calendar" style="width: 100%;">
+                <div class="calendar-btn month-btn" onclick="$('#months').toggle('fast')">
+                    <span id="curMonth"></span>
+                    <div id="months" class="months dropdown"></div>
+                </div>
+            
+                <div class="calendar-btn year-btn" onclick="$('#years').toggle('fast')">
+                    <span id="curYear"></span>
+                    <div id="years" class="years dropdown"></div>
+                </div>
+            
+                <div class="clear"></div>
+            
+                <div class="calendar-dates">
+                    <div class="days">
+                        <div class="day label">DOM</div>
+                        <div class="day label">SEG</div>
+                        <div class="day label">TER</div>
+                        <div class="day label">QUA</div>
+                        <div class="day label">QUI</div>
+                        <div class="day label">SEX</div>
+                        <div class="day label">SAB</div>
+            
+                        <div class="clear"></div>
+                    </div>        
+                    <div id="calendarDays" class="days">
+                    </div>
+                </div>
+            </div>       
+            
+        </div>
+        <!-- End Middle Column -->
+        <br>
+        <!-- Right Column -->
+        <div class="w3-col m2"></div>
+      </div> 
+
+      <!-- Rodapé e Modais -->
+    <footer>
+        <div id="modal-agenda" class="modal-container mostrar" style="display: none;" >
+            <div id="modal" class="modal-agenda" style="margin-top: -100px;">
+    
+                <button id="close" class="btn-close" onclick="closeModal('modal-agenda');"><h4 class="w3-opacity"></h4></button>
+                <center>
+                <h4 class="titulo">Agendamentos</h4>
+                <br>
+                </center>    
+                
+                <form id="addConsulta">
+                    <input type="text" name="observacao" id="observacao" class="input" placeholder="Presencial(Endereço)-Online(link)">
+                    <br><br>
+                    <input type="text" name="data" id="data" class="input">
+                    <br><br>
+                    <input type="time" name="hora" id="hora" class="input">
+                    <br><br>
+                    <button type="submit" class="button fit">Salvar</button>
+                </form>
+            
+            </div>
+        </div>
+        
+        <div id="modal-consultas" class="modal-container mostrar" style="display: none;" >
+            <div style="width: 60%; margin-left: 20%; margin-top: 50px;">            
+                <div class="w3-card w3-round w3-white">
+                    <button id="close" class="btn-close" onclick="closeModal('modal-consultas');"><h4 class="w3-opacity"></h4></button>
+                    <div id="consultas-nutris" class="w3-container w3-padding" style="max-height: 500px; overflow: auto;">
+                
+                    <h5 class="w3-opacity"><strong>Consultas</strong></h5><br>
+                    <hr class="w3-clear">
+                    <br>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div style="background-color: #eff7f5ce; width: 100%; height: 400px;"></div>
+
+        <div  class="w3-bar-block w3-theme-d2" style="display: flex; flex-direction: column; align-items: center;">
+            Copy&copy;Right
+            <img src="./img/softnutrillogo.PNG" alt="">
+        </div>        
+    </footer> 
+
+    <!-- Scripts Jquery -->
+    <script
+        src="https://code.jquery.com/jquery-3.4.1.min.js"
+        integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo="
+        crossorigin="anonymous">
+    </script>
+
+    <script src="calendar.js" async defer></script>
+
+    <!-- Script Nav -->
+    <script>
+        // Accordion
+        function myFunction(id) {
+            var x = document.getElementById(id);
+            if (x.className.indexOf("w3-show") == -1) {
+            x.className += " w3-show";
+            x.previousElementSibling.className += " w3-theme-d1";
+            } else { 
+            x.className = x.className.replace("w3-show", "");
+            x.previousElementSibling.className = 
+            x.previousElementSibling.className.replace(" w3-theme-d1", "");
+            }
+        }
+        
+        //função small
+        function openNav() {
+            var x = document.getElementById("navDemo");
+            if (x.className.indexOf("w3-show") == -1) {
+            x.className += " w3-show";
+            } else { 
+            x.className = x.className.replace(" w3-show", "");
+            }
+        }
+    </script>
+
+    <!-- Script Calendario -->
+    <script>
+        var months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        var startYear = 2000;
+        var endYear = 2050;
+        var month = 0;
+        var year = 0;
+        var selectedDays = new Array();
+        var mousedown = false;
+        var mousemove = false;
+        var qtdDias = 0;            
+
+        const dataClick = {
+            dia: '',
+            mes: '',
+            ano:'',
+        }
+
+        function disponibilizarHora() {                
+                var myForm = document.getElementById("addConsulta");
+                var obs = document.getElementById("observacao");
+                
+                myForm.addEventListener('submit', function(e){
+                    e.preventDefault();
+
+                    const formData = new FormData(this);
+
+                    const Item = {
+                        observacao:formData.get('observacao'),
+                        data:dataClick.ano+"-"+dataClick.mes+"-"+dataClick.dia,
+                        hora:formData.get('hora'),
+                        status: 'Disponível',
+                    } 
+                    console.log(dataClick.dia);
+
+                    console.log(Item);
+                    
+                    var enviaItens = makeRequest('/disponibilizarHora/'+idNutri, 'POST', JSON.stringify(Item));
+                    enviaItens.then(function(response){
+                        response.text().then(function(itens){
+                            var msg = document.createElement("div");
+                            msg.setAttribute('id', 'msg-success');
+                            msg.style.color = "green";
+                            msg.innerHTML = "Disponibilidade adicionada com sucesso!";
+
+                            setTimeout(function(){ msg.style.display= "none"; }, 3000);
+                            document.getElementById("modal").appendChild(msg);
+
+                            obs.value = '';
+                        location.reload();
+                        }).catch(function(error) {
+                            console.log(error);
+                        }) 
+                    }).catch(function(error) {
+                        console.log(error);
+                    })
+
+                });
+            }
+    
+        function loadCalendarMonths() {
+            for (var i = 0; i < months.length; i++) {
+                var doc = document.createElement("div");
+                doc.innerHTML = months[i];
+                doc.classList.add("dropdown-item");
+                dataClick.mes = month + 1;
+                doc.onclick = (function () {
+                    var selectedMonth = i;
+                    return function () {
+                        month = selectedMonth;
+                        
+                        
+                        document.getElementById("curMonth").innerHTML = months[month];
+                        loadCalendarDays();
+
+                        dataClick.mes = month + 1
+                        consultasMonth();
+                        return month;
+                    }
+                })();
+    
+                document.getElementById("months").appendChild(doc);
+            }
+        
+        
+        }
+    
+        function loadCalendarYears() {
+            document.getElementById("years").innerHTML = "";
+    
+            for (var i = startYear; i <= endYear; i++) {
+                var doc = document.createElement("div");
+                doc.innerHTML = i;
+                doc.classList.add("dropdown-item");
+    
+                doc.onclick = (function () {
+                    var selectedYear = i;
+                    return function () {
+                        year = selectedYear;
+                    
+                        
+                        document.getElementById("curYear").innerHTML = year;
+                        loadCalendarDays();
+                        return year;
+                    }
+                })               
+    
+                document.getElementById("years").appendChild(doc);
+            }
+            dataClick.ano = year;
+    }
+    
+        function loadCalendarDays() {
+            document.getElementById("calendarDays").innerHTML = "";
+
+            var tmpDate = new Date(year, month, 0);
+            var num = daysInMonth(month, year);
+            var dayofweek = tmpDate.getDay();       // find where to start calendar day of week
+            var values = [];
+
+            for (var i = 0; i <= dayofweek; i++) {
+                var d = document.createElement("div");
+                d.classList.add("day");
+                d.classList.add("blank");
+                document.getElementById("calendarDays").appendChild(d);
+            }
+
+            for (var i = 0; i < num; i++) {
+                var tmp = i + 1;
+                var d = document.createElement("div");
+                var aux =0;
+                d.id = "calendarday_" + tmp;
+                d.className = "day";
+                d.innerHTML = tmp;
+                d.dataset.day = tmp;
+
+            qtdDias =tmp;
+                
+                d.addEventListener('click', function(){
+
+                    var date = this.dataset.day+"-"+dataClick.mes+"-"+dataClick.ano; 
+
+                    dataClick.dia = this.dataset.day;
+                    // this.classList.toggle('selected');
+                    document.getElementById("data").value = date;
+
+                    disponibilizarHora();
+                    document.getElementById('modal-agenda').style.display ="block";
+                    if (!selectedDays.includes(this.dataset.day))
+                        selectedDays.push(this.dataset.day);
+
+                    else
+                        selectedDays.splice(selectedDays.indexOf(this.dataset.day), 1);
+                });
+
+                d.addEventListener('mousemove', function(e){
+                e.preventDefault();
+                    if (mousedown)
+                    {
+                        this.classList.add('selected');
+
+                        if (!selectedDays.includes(this.dataset.day))
+                            selectedDays.push(this.dataset.day);
+                    }
+                });
+
+                d.addEventListener('mousedown', function(e){
+                    e.preventDefault();
+                    mousedown = true;
+                });
+                
+                d.addEventListener('mouseup', function(e){
+                    e.preventDefault();
+                    mousedown = false;
+                });
+
+                document.getElementById("calendarDays").appendChild(d);
+            }
+
+            var clear = document.createElement("div");
+            clear.className = "clear";
+            document.getElementById("calendarDays").appendChild(clear);
+        }
+            
+        function daysInMonth(month, year) {
+                var d = new Date(year, month+1, 0);
+                return d.getDate();
+        }
+        
+        function consultasMonth() {
+            console.log(qtdDias);
+            for(cont = 1; cont< qtdDias+1; cont++) {
+                console.log(dataClick.mes);
+                var date = dataClick.ano+"-"+dataClick.mes+"-"+cont;
+                var aux = 0;
+                makeRequest('/nutris/consultas/'+idNutri+'/'+date, 'GET').then(function(response){
+                    response.json().then(function(consultas){
+                    // console.log(consultas);
+                        aux++;
+                        if(consultas.length > 0) {               
+                            if(consultas.length < 5) {
+                                document.getElementById("calendarday_"+aux).style.backgroundColor="#55c23fde";
+                            } else if(consultas.length < 10){
+                                document.getElementById("calendarday_"+aux).style.backgroundColor="#fac16b";
+                            } else {
+                                document.getElementById("calendarday_"+aux).style.backgroundColor="#fd442cde";
+                            }                
+                        }                                     
+                    })                
+                })
+            }       
+        }    
+
+        window.addEventListener('load', function (event) {
+            var date = new Date();
+            month = date.getMonth();
+            year = date.getFullYear();
+            document.getElementById("curMonth").innerHTML = months[month];
+            document.getElementById("curYear").innerHTML = year;
+            loadCalendarMonths();
+            loadCalendarYears();
+            window.loadCalendarDays();
+            consultasMonth();
+                                                
+        });
+        
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/js/bootstrap.bundle.min.js" integrity="sha384-ygbV9kiqUc6oa4msXn9868pTtWMgiQaeYH7/t7LECLbyPA2x65Kgf80OJFdroafW" crossorigin="anonymous"></script>
+    <script src="./js/scripts.js"></script>
+</body>
+
+
+

@@ -1,0 +1,616 @@
+<!-- Início do Paciente -->
+<!DOCTYPE html>
+<html>
+  <title>Home Paciente|Softnutri</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+  <link rel="stylesheet" href="https://www.w3schools.com/lib/w3-theme-blue-grey.css">
+  <link rel='stylesheet' href='https://fonts.googleapis.com/css?family=Open+Sans'>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-giJF6kkoqNQ00vy+HMDP7azOuL0xtbfIcaT9wjKHr8RbDVddVHyTfAAsrekwKmP1" crossorigin="anonymous">
+  <link  href="./css/estilo.css" rel="stylesheet">
+  <style>
+    html, body, h1, h2, h3, h4, h5 {font-family: "Open Sans", sans-serif}
+    a{text-decoration: none; color: #fff;}
+    a:hover{ color: #000;}
+  </style>
+
+  <script>
+
+    var jwtToken = localStorage.getItem('token');
+
+    const idPac = localStorage.getItem('idPac'); 
+
+    async function makeRequest(url, method, payload, file) {
+      
+
+        if(jwtToken) {
+            // headers['Authorization'] = 'Bearer ' + jwtToken;
+            var content = 'Bearer ' + jwtToken;
+            var myHeader = new Headers();
+          
+            //myHeader.append('Content-type' ,'multipart/form-data;boundary=<calculated when request is sent>');
+            myHeader.append('Authorization', content)
+
+        }    
+      return response = await fetch(url, {
+            method: method,
+            mode: 'cors',
+            headers: myHeader,
+            body:payload,
+        });
+
+    }
+
+    function loggoff() {
+        localStorage.removeItem('token');
+    }  
+
+    function getPaciente() {
+      var nutri = makeRequest('/detalhespaciente/'+idPac, 'GET');
+      nutri.then(function(response) {
+          response.json().then(function(paciente) {
+              console.log(paciente);
+              var elH = document.createElement("h4");
+              elH.setAttribute('class', 'w3-center');
+              elH.innerHTML = paciente.nome +" "+paciente.sobrenome;
+              document.getElementById("perfil-nome").appendChild(elH);
+
+              var peso = paciente.peso;
+              var altura = paciente.altura;
+
+              var elP = document.createElement('small');
+              elP.setAttribute('class', 'w3-center');
+              elP.innerHTML = "<strong>IMC: </strong>"+calcIMC(peso, altura);
+              document.getElementById("perfil-imc").appendChild(elP);
+
+          })
+      })
+    }
+
+    function calcIMC (peso, altura) {
+        var imc = peso / (altura * altura);
+
+        return imc;
+    }
+
+    function showConsultas() {
+        var meses = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"]
+
+        var now = new Date();
+        var year = now.getFullYear();
+        var mounth = meses [now.getMonth()];
+        var day = now.getDate();
+        var date =  year +'-' + mounth + '-' + day +'"';    
+        var url = '/pacientesConsultas/'+idPac+'/'+date;
+        var cont = 0;
+
+        var pacientes = makeRequest(url, 'GET');
+        pacientes.then(function(response) {
+            response.json().then(function(pctConsultas) {
+                console.log(pctConsultas);                   
+                if(pctConsultas.length > 0) {
+                    var dataCosulta = '';
+                    pctConsultas.forEach(Consulta => {
+                        var elementoH = document.createElement("h4");
+
+                        var dataAndHora = Consulta.hora;
+
+                        var parts = dataAndHora.split('T');
+
+                        var [data, hora] = parts;
+
+                        var partsData = data.split('-');
+                        var partsHora = hora.split('.')
+
+                        dataCosulta = partsData[2] +"/"+ partsData[1] +"/"+ partsData [0];
+                        var horaConsulta = partsHora[0];
+
+                        elementoH.innerHTML = "<br>Nutricionista: "+ Consulta.nome + " "+ Consulta.sobrenome + " |Horário: "+  horaConsulta  +" <small>"+Consulta.status+"<hr>";;                 
+                        document.getElementById("consultas").appendChild(elementoH);
+                        cont++;
+                    });
+                    //document.getElementById("listaconsultas").innerText = dataCosulta;
+                } else {
+                    var elementoH = document.createElement("h6");
+                    elementoH.innerHTML = "Você não possui nenhuma consulta marcada para hoje";                 
+                    document.getElementById("consultas").appendChild(elementoH);
+                }
+            });
+        });
+    } 
+
+    function getPerfil() {
+
+      var perfilPac = makeRequest('/pacPerfil/'+idPac, 'GET');
+      perfilPac.then(function(response) {
+      response.json().then(function(pathImg) {
+        console.log(pathImg);    
+        if(pathImg.length > 0) {
+          var elementoDiv = document.createElement("img");
+          elementoDiv.setAttribute('class', 'perfil-chat');
+          elementoDiv.setAttribute('src', '/files/'+pathImg[0].url);
+          elementoDiv.setAttribute('alt', 'perfil');
+          //elementoDiv.setAttribute('width', '50%');
+          document.getElementById("imgPerfil").appendChild(elementoDiv);
+          
+        
+          document.getElementById("imgPerfil-padrao").style.display= "none";
+        }             
+
+        });
+      });          
+    }
+
+    function deletePerfil() {
+      var perfilNutri = makeRequest('/deletePacImage/'+idPac, 'DELETE');
+      perfilNutri.then(function(response) {
+        response.json().then(function(message) {
+          console.log(message);
+          
+              
+        
+        });
+      });
+    }
+
+    function showDay() { 
+
+      var dias = [
+        'Domingo',
+        'Segunda-feira',
+        'Terça-feira',
+        'Quarta-feira',
+        'Quinta-feira',
+        'Sexta-feira',
+        'Sábado',        
+      ]
+      var today = new Date();
+
+      console.log(dias)
+
+      var p = document.createElement("p");
+      p.innerHTML = '<strong>Hoje é:</strong><br>'+ dias[today.getDay()]+"<br> "+
+                    today.getHours()+":"+today.getMinutes();
+      document.getElementById("dia-semana").appendChild(p);
+    }
+
+    getPaciente();
+    showConsultas()
+
+  </script>
+  <body class="w3-theme-l5">
+
+  <!-- Navbar -->
+  <div class="w3-top">
+  <div class="w3-bar w3-left-align w3-large" style="background-color: #58af9b;">
+    <a class="w3-bar-item w3-button w3-hide-medium w3-hide-large w3-right w3-padding-large w3-hover-white w3-large " href="javascript:void(0);" onclick="openNav()" style="background-color: #58af9bb6;" ><i class="fa fa-bars"></i></a>
+    <a href="/homePaciente" class="w3-bar-item w3-button w3-padding-large" style="background-color: #58af9b;"><i class="fa fa-home w3-margin-right"></i>Início</a>
+    <a href="/nutricionistas" class="w3-bar-item w3-button w3-hide-small w3-padding-large w3-hover-white" title="Meu Nutricionista"> Nutricionistas</a>
+    <a href="/diario" class="w3-bar-item w3-button w3-hide-small w3-padding-large w3-hover-white" title="Diário">Diário</a>
+    
+    <a onclick="loggoff();" href="/" class="w3-bar-item w3-button w3-hide-small w3-right w3-padding-large w3-hover-white" title="SAIR">
+      <img src="./img/softnutri.png"  alt="Avatar">
+    </a>
+  </div>
+  </div>
+
+  <!-- Navbar on small screens -->
+  <div id="navDemo" class="w3-bar-block w3-theme-d2 w3-hide w3-hide-large w3-hide-medium w3-large">
+    <a href="#" class="w3-bar-item w3-button w3-padding-large">Perfil</a>
+    <a href="/homePaciente" class="w3-bar-item w3-button w3-padding-large">Nutricionistas</a>
+    <a href="/nutricionista" class="w3-bar-item w3-button w3-padding-large">Marcar Consulta</a>
+    <a href="/diario" class="w3-bar-item w3-button w3-padding-large">Diário</a>
+  </div>
+
+  <!-- Page Container -->
+  <div class="w3-container w3-content" style="max-width:1400px;margin-top:80px">    
+    <!-- The Grid -->
+    <div class="w3-row">
+      <!-- Left Column -->
+      <div class="w3-col m3">
+        <!-- Profile -->
+        <div class="w3-card w3-round w3-white">
+          <div class="w3-container">         
+          <p id="imgPerfil-padrao" class="w3-center" style="padding: 10px;"><img src="./user.png" class="w3-circle" style="height:106px;width:106px" alt="Avatar"></p>
+          <div style="width: 50%; margin-left: 25%;">
+              <p id="imgPerfil" class="w3-center" style="padding: 10px;">
+          </div>
+          
+          </p>
+          <h4 id="perfil-nome" class="w3-center"></h4>
+          <p><button class="w3-button w3-block w3-theme-l4" onclick="openModal('modal-agenda'), addImagemPerfil();"><i class="fa fa-pencil"></i>Editar</button></p>
+          <hr>
+          <p id="perfil-imc" class="w3-center"></p>
+          
+          </div>
+        </div>
+        <br>      
+
+      <!-- End Left Column -->
+      </div> 
+      <!-- Middle Column -->
+      <div class="w3-col m7">    
+          <div class="w3-row-padding">
+            <div class="w3-col m12">
+              
+
+              <div class="w3-card w3-round w3-white">
+                <div id="consultas" class="w3-container w3-padding" >
+
+                  <h4>Consultas do dia</h1>
+                  <hr>
+                  <br>
+                
+                </div>
+              </div>
+              <br>
+            </div>
+          </div>
+
+          <div class="w3-row-padding">
+            <div class="w3-col m12">
+              <div class="w3-card w3-round w3-white">
+                <div class="w3-container w3-padding">
+
+                  <h3 class="w3-opacity">Bem-vindo ao Softnutri</h3>
+                  <br>             
+
+                  <div id="inicio">
+                    <div class="w3-card w3-round w3-white">
+                      <div class="w3-container">
+                        <h2 class="title">Nutricionistas</h2>
+                        <br>
+                        <p class="w3-center"><img src="./img/nutriHome.jpg" class="w3-circle" style="height:106px;width:106px" alt="Avatar"></p>
+                        <br>
+
+                        <div class="w3-card w3-round w3-white">
+                          <div class="w3-container">
+                            
+                            <small class="w3-opacity" style="text-align: justify;"><i class="fa fa-user"></i>Consulte nossos profissionais</small>
+                          </div>
+                        </div>
+                        <br><br>
+
+                      <button type="button" class="w3-button w3-margin-bottom" style="background-color: #58af9b;"><i class="fa fa-thumbs"></i><a href="/nutricionistas">Pesquisar</a> </button> 
+                      </div>
+                    </div>
+          
+                    <div class="w3-card w3-round w3-white">
+                      <div class="w3-container">
+                      <h2 class="title">Consultas</h2>
+                      <br>
+                      <p class="w3-center"><img src="./img/consultaHome.png" class="w3-circle" style="height:106px;width:106px" alt="Avatar"></p>
+                      <br>
+
+                      <div class="w3-card w3-round w3-white">
+                        <div class="w3-container">
+                          
+                          <small class="w3-opacity" style="text-align: justify;"><i class="fa fa-book"></i>Acompanhe sua agenda e não perca uma consulta!</small>
+                        </div>
+                      </div>
+                      <br><br>
+
+                      <button type="button" class="w3-button w3-margin-bottom" style="background-color: #58af9b;"><a href="/consultasPaciente">Ver +</a></button> 
+                      </div>
+                    </div>
+          
+                    <div class="w3-card w3-round w3-white">
+                      <div class="w3-container">
+                      <h2 class="title">Consumo</h2>
+                      <br>
+                      <p class="w3-center"><img src="./img/dietasHome.png" class="w3-circle" style="height:106px;width:106px" alt="Avatar"></p>
+                      <br>
+
+                      <div class="w3-card w3-round w3-white">
+                        <div class="w3-container">
+                          
+                          <small class="w3-opacity" style="text-align: justify;"><i class="fa fa-dashboard"></i> Analise seus resultados e alcance seus objetivos</small>
+                        </div>
+                      </div>
+                      <br><br>
+
+                      <button type="button" class="w3-button w3-margin-bottom" style="background-color: #58af9b;"><a href="/diario">Ver +</a></button> 
+                      </div>
+                    </div>
+                  </div>
+                  <br>
+                
+                </div>
+              </div>
+              <br>
+            </div>
+          </div>
+      <!-- End Middle Column -->
+      </div>    
+      <!-- Right Column --> 
+      <div class="w3-col m2">
+        <div class="w3-card w3-round w3-white w3-center">
+          <div id="dia-semana" class="w3-container">
+          
+          </div>
+        </div>
+        <br><br>
+        <div class="w3-card w3-round w3-white w3-center">
+        
+          <div class="calendar" id="calendar" style="width: 100%;">
+
+              <div class="calendar-btn month-btn" onclick="$('#months').toggle('fast')" 
+              style="background-color: white; color: #58af9b;">
+                  <span id="curMonth"></span>
+                  <div id="months" class="months dropdown"></div>
+              </div>
+          
+              <div class="calendar-btn year-btn" onclick="$('#years').toggle('fast')"
+              style="background-color: white; color: #58af9b;">
+                  <span id="curYear"></span>
+                  <div id="years" class="years dropdown"></div>
+              </div>
+          
+              <div class="clear"></div>
+          
+              <div class="calendar-dates">
+                  <div class="days">
+                      <div class="day label">D</div>
+                      <div class="day label">S</div>
+                      <div class="day label">T</div>
+                      <div class="day label">Q</div>
+                      <div class="day label">Q</div>
+                      <div class="day label">S</div>
+                      <div class="day label">S</div>
+          
+                      <div class="clear"></div>
+                  </div>        
+                  <div id="calendarDays" class="days">
+                  </div>
+              </div>
+          </div> 
+          
+        </div>
+        <br>
+      <!--End Right Column -->
+      </div>
+    <!-- End Grid -->
+    </div>
+  <!-- End Page Container -->
+  </div>
+  <br><br><br><br><br>
+  <!-- Footer -->
+  <footer>
+
+      <div id="modal-agenda" class="modal-container mostrar">
+          <div class="modal-agenda">
+              <button class="btn-close" onclick="closeModal('modal-agenda')"></button>
+              <h3 class="subtitulo">Editar foto de Perfil</h3>
+              <br><br>
+              <form id="addPerfil">
+                  <input name="file"  type="file" class="input" multiple >
+                  <br><br><br>
+                  <input type="submit" class="button fit">                
+              </form>
+          </div>
+      </div>
+    <div style="background-color: #eff7f5ce; width: 100%; height: 400px;"></div>
+
+    <div  class="w3-bar-block w3-theme-d2" style="display: flex; flex-direction: column; align-items: center;">
+      Copy&copy;Right
+      <img src="./img/softnutrillogo.PNG" alt="">
+    </div>
+  </footer>
+
+
+  
+  <script>
+  // Accordion
+  function myFunction(id) {
+    var x = document.getElementById(id);
+    if (x.className.indexOf("w3-show") == -1) {
+      x.className += " w3-show";
+      x.previousElementSibling.className += " w3-theme-d1";
+    } else { 
+      x.className = x.className.replace("w3-show", "");
+      x.previousElementSibling.className = 
+      x.previousElementSibling.className.replace(" w3-theme-d1", "");
+    }
+  }
+
+  // Used to toggle the menu on smaller screens when clicking on the menu button
+  function openNav() {
+    var x = document.getElementById("navDemo");
+    if (x.className.indexOf("w3-show") == -1) {
+      x.className += " w3-show";
+    } else { 
+      x.className = x.className.replace(" w3-show", "");
+    }
+  }
+  </script>
+
+  <script
+    src="https://code.jquery.com/jquery-3.4.1.min.js"
+    integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo="
+    crossorigin="anonymous">
+  </script>
+  <script src="calendar.js" async defer></script>
+  <script>
+        var months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        var startYear = 2000;
+        var endYear = 2020;
+        var month = 0;
+        var year = 0;
+        var selectedDays = new Array();
+        var mousedown = false;
+        var mousemove = false;
+
+    function loadCalendarMonths() {
+        for (var i = 0; i < months.length; i++) {
+            var doc = document.createElement("div");
+            doc.innerHTML = months[i];
+            doc.classList.add("dropdown-item");
+
+            doc.onclick = (function () {
+                var selectedMonth = i;
+                return function () {
+                    month = selectedMonth;
+                    document.getElementById("curMonth").innerHTML = months[month];
+                    loadCalendarDays();
+                    return month;
+                }
+            })();
+
+            document.getElementById("months").appendChild(doc);
+        }
+    }
+
+    function loadCalendarYears() {
+        document.getElementById("years").innerHTML = "";
+
+        for (var i = startYear; i <= endYear; i++) {
+          var doc = document.createElement("div");
+          doc.innerHTML = i;
+          doc.classList.add("dropdown-item");
+
+          doc.onclick = (function () {
+            var selectedYear = i;
+            return function () {
+                year = selectedYear;
+                document.getElementById("curYear").innerHTML = year;
+                loadCalendarDays();
+                return year;
+            }
+          })();
+
+          document.getElementById("years").appendChild(doc);
+        }
+    }
+
+    function loadCalendarDays() {
+        document.getElementById("calendarDays").innerHTML = "";
+
+        var now = new Date();
+
+        var tmpDate = new Date(year, month, 0);
+        var num = daysInMonth(month, year);
+        var dayofweek = tmpDate.getDay();       // find where to start calendar day of week
+
+        for (var i = 0; i <= dayofweek; i++) {
+            var d = document.createElement("div");
+            d.classList.add("day-home");
+            d.classList.add("blank");
+            document.getElementById("calendarDays").appendChild(d);
+        }
+
+      for (var i = 0; i < num; i++) {
+        var tmp = i + 1;
+        var d = document.createElement("div");
+        d.id = "calendarday_" + tmp;
+        d.className = "day-home";
+        d.innerHTML = tmp;
+        d.dataset.day = tmp;
+
+        if(tmp == now.getDate()) {
+          d.style.backgroundColor = "#58af9bb2";
+        }
+
+        d.addEventListener('click', function(){
+            this.classList.toggle('selected');
+
+            if (!selectedDays.includes(this.dataset.day))
+                selectedDays.push(this.dataset.day);
+
+            else
+                selectedDays.splice(selectedDays.indexOf(this.dataset.day), 1);
+        });
+
+        d.addEventListener('mousemove', function(e){
+        e.preventDefault();
+            if (mousedown)
+            {
+                this.classList.add('selected');
+
+                if (!selectedDays.includes(this.dataset.day))
+                    selectedDays.push(this.dataset.day);
+            }
+        });
+
+        d.addEventListener('mousedown', function(e){
+            e.preventDefault();
+            mousedown = true;
+        });
+          
+        d.addEventListener('mouseup', function(e){
+            e.preventDefault();
+            mousedown = false;
+        });
+
+        document.getElementById("calendarDays").appendChild(d);
+      }
+
+      var clear = document.createElement("div");
+      clear.className = "clear";
+      document.getElementById("calendarDays").appendChild(clear);
+    }
+
+    function daysInMonth(month, year) {
+      var d = new Date(year, month+1, 0);
+      return d.getDate();
+    }
+
+    function addImagemPerfil (){
+          var myForm = document.getElementById("addPerfil");
+          
+          myForm.addEventListener('submit', function(e){
+              e.preventDefault();
+
+              const formData = new FormData(this);
+
+              const Item = formData.getAll('file')
+
+              const file = {
+
+                  fieldname: 'file',
+                  originalname: Item[0].name,
+                  mimetype: Item[0].type,
+                  size:Item[0].size
+              }               
+                                  
+              console.log(file);
+              console.log( formData);
+
+              deletePerfil();
+              
+              var enviaItens = makeRequest('/addFotoPac/'+idPac, 'POST', formData);
+              enviaItens.then(r => r.json()).then(data => {
+                  console.log(data);
+
+              getPerfil();
+              location.reload(); 
+              document.getElementById("imgPerfil").style.display= "block";
+                  
+              }).catch(function(error) {
+                  
+                  console.log(error);
+              }) 
+              document.getElementById("imgPerfil").style.display= "block";
+              
+
+          });
+      }
+      getPerfil();
+
+    showDay();
+    window.addEventListener('load', function () {
+      var date = new Date();
+      month = date.getMonth();
+      year = date.getFullYear();
+      document.getElementById("curMonth").innerHTML = months[month];
+      document.getElementById("curYear").innerHTML = year;
+      loadCalendarMonths();
+      loadCalendarYears();
+      loadCalendarDays();
+    });
+  </script>
+      <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/js/bootstrap.bundle.min.js" integrity="sha384-ygbV9kiqUc6oa4msXn9868pTtWMgiQaeYH7/t7LECLbyPA2x65Kgf80OJFdroafW" crossorigin="anonymous"></script>
+      <script src="./js/scripts.js"></script>
+  </body>
+</html> 

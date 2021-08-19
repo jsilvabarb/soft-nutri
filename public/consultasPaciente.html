@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<!-- Página de Consultas do Usuário Logado como Paciente -->
+<html>
+  <title>Consultas | Softnutri</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+  <link rel="stylesheet" href="https://www.w3schools.com/lib/w3-theme-blue-grey.css">
+  <link rel='stylesheet' href='https://fonts.googleapis.com/css?family=Open+Sans'>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-giJF6kkoqNQ00vy+HMDP7azOuL0xtbfIcaT9wjKHr8RbDVddVHyTfAAsrekwKmP1" crossorigin="anonymous">
+  <link  href="./css/estilo.css" rel="stylesheet">
+  <style>
+  html, body, h1, h2, h3, h4, h5 {font-family: "Open Sans", sans-serif}
+
+  a{text-decoration: none; color: black;}
+  a:hover{color: #58af9b;}
+  </style>
+
+  <script>
+
+    var jwtToken = localStorage.getItem('token');
+    
+    const idPac = localStorage.getItem('idPac');
+    
+    //Função assíncrona para autenticação      
+    async function makeRequest(url, method, payload, file) {        
+    
+      if(jwtToken) {
+        var content = 'Bearer ' + jwtToken;
+        var myHeader = new Headers();
+        myHeader.append('Authorization', content)
+
+      }    
+      return response = await fetch(url, {
+        method: method,
+        mode: 'cors',
+        headers: myHeader,
+        body:payload,
+      });
+    
+    }
+    
+    //Função para deslogar usuário
+    function loggoff() {
+      localStorage.removeItem('token');
+      localStorage.removeItem('idPac');
+    }  
+    
+    //Função responsável por exibir a imagem de perfil do usuário
+    function getPerfil() {
+      var perfilPac = makeRequest('/pacPerfil/'+idPac, 'GET');
+      perfilPac.then(function(response) {
+        response.json().then(function(pathImg) {
+          console.log(pathImg); 
+          var elementoImg = document.createElement("img");
+          elementoImg.setAttribute('class', 'w3-circle');   
+          elementoImg.setAttribute('width', '100px');   
+          elementoImg.setAttribute('heigth', '100px');   
+          if(pathImg.length > 0) {
+            
+            elementoImg.setAttribute('src', '/files/'+pathImg[0].url);
+            elementoImg.setAttribute('alt', 'perfil');
+            document.getElementById("imgPerfil").appendChild(elementoImg);
+            
+          } else {
+            elementoImg.setAttribute('src', './user.png');
+            elementoImg.setAttribute('alt', 'perfil');
+            document.getElementById("imgPerfil").appendChild(elementoImg);
+          }  
+          
+          var elementoH = document.createElement("h4");
+          elementoH.innerHTML = pathImg[0].nome+" "+pathImg[0].sobrenome;
+          document.getElementById("perfil-nome").appendChild(elementoH);
+
+        });
+      });          
+    }
+  
+    //Função responsável por exibir as consultas
+    function showConsultas() {          
+
+      var pacientes = makeRequest('/pacientesAllConsultas/'+idPac, 'GET');
+      pacientes.then(function(response) {
+        response.json().then(function(consultas) {
+            console.log(consultas);          
+            var cont =0;
+
+            consultas.forEach(Consulta => {
+              var elementoDiv = document.createElement("div");
+              elementoDiv.setAttribute('id', 'consulta'+cont);
+              elementoDiv.setAttribute('class', 'consulta');
+              document.getElementById("consultas-pacientes").appendChild(elementoDiv);
+
+              var elementoH = document.createElement("h5");
+              elementoH.innerHTML = "Nutricionista: "+Consulta.nome +" "+Consulta.sobrenome;
+
+              var data = Consulta.data;
+              var [ano, mes, dia] = data.split("-");
+
+              var horas = Consulta.hora;
+              var [d, h] = horas.split("T");
+              var [hora, min, seg] = h.split(":");
+
+              var elementoHr = document.createElement("hr");
+
+              var elementoBtn = document.createElement("button");
+              elementoBtn.setAttribute('onclick', 'cancelarConsulta(this)')
+              elementoBtn.setAttribute('id', Consulta.id);
+              elementoBtn.setAttribute('class', 'cancelar');
+              elementoBtn.innerHTML="Cancelar";
+              
+              var elementoSmall = document.createElement("small");
+              elementoSmall.innerHTML = "Dia "+dia+"-"+mes+"-"+ano+" Hora: "+hora+":"+min+" <strong>"+Consulta.status+"</strong>";
+
+              elementoDiv.appendChild(elementoH);         
+              elementoDiv.appendChild(elementoSmall); 
+              if(Consulta.status != "cancelada") {
+                elementoDiv.appendChild(elementoBtn);
+              }
+              elementoDiv.appendChild(elementoHr);        
+              cont++;
+          });
+        });
+      });
+    }
+
+    //Ação de cancelar consulta
+    function cancelarConsulta(componente){
+    var idCon = componente.getAttribute('id');
+
+    var cancelConsulta = makeRequest('/cancelarConsulta/'+idPac+'/'+idCon, 'PUT');
+    cancelConsulta.then(function(response) {
+      response.json().then(function(consultaAtualizada) {
+        console.log(consultaAtualizada);
+        location.reload();
+      })
+    })
+    }
+    
+    //Exibe o dia da semana
+    function showDay() { 
+
+    var dias = [
+      'Domingo',
+      'Segunda-feira',
+      'Terça-feira',
+      'Quarta-feira',
+      'Quinta-feira',
+      'Sexta-feira',
+      'Sábado',        
+    ]
+    var today = new Date();
+
+    console.log(dias)
+
+    var p = document.createElement("p");
+    p.innerHTML = '<strong>Hoje é:</strong><br>'+ dias[today.getDay()]+"<br> "+
+                  today.getHours()+":"+today.getMinutes();
+    document.getElementById("dia-semana").appendChild(p);
+  }
+
+    
+    getPerfil();
+    showConsultas();      
+  </script>
+
+  <body class="w3-theme-l5">
+    <!-- Navbar -->
+    <div class="w3-top">
+      <div class="w3-bar w3-left-align w3-large" style="background-color: #58af9b;">
+      <a class="w3-bar-item w3-button w3-hide-medium w3-hide-large w3-right w3-padding-large w3-hover-white w3-large " href="javascript:void(0);" onclick="openNav()" style="background-color: #58af9bb6;" ><i class="fa fa-bars"></i></a>
+      
+      <a href="./home_paciente.html" class="w3-bar-item w3-button w3-padding-large" style="background-color: #58af9b;"><i class="fa fa-home w3-margin-right"></i>Início</a>
+      <a href="/nutricionistas" class="w3-bar-item w3-button w3-hide-small w3-padding-large w3-hover-white" title="Meu Nutricionista">Nutricionistas</a>
+      <a href="/diario" class="w3-bar-item w3-button w3-hide-small w3-padding-large w3-hover-white" title="Diário">Diário</a>
+      
+      <a onclick="loggoff();" href="/" class="w3-bar-item w3-button w3-hide-small w3-right w3-padding-large w3-hover-white" title="SAIR">
+        <img src="./img/softnutri.png"  alt="Avatar">
+      </a>
+      </div>
+    </div>
+  
+  <!-- Navbar on small screens -->
+  <div id="navDemo" class="w3-bar-block w3-theme-d2 w3-hide w3-hide-large w3-hide-medium w3-large">
+    <a href="./nutricionistas.html" class="w3-bar-item w3-button w3-padding-large">Perfil</a>
+    <a href="./nutricionistas.html" class="w3-bar-item w3-button w3-padding-large">Nutricionistas</a>
+    <a href="/diario" class="w3-bar-item w3-button w3-padding-large">Diário</a>
+    <a href="" class="w3-bar-item w3-button w3-padding-large">Sair</a>
+  </div>
+  
+  
+
+    <!-- Page Container -->
+    <div class="w3-container w3-content" style="max-width:1400px;margin-top:80px">    
+      <!-- The Grid -->
+      <div class="w3-row">
+        <!-- Left Column -->
+        <div class="w3-col m3">
+          <!-- Profile -->
+          <div id="perfil" class="w3-card w3-round w3-white">
+            <div class="w3-container">         
+              <div class="w3-center">
+                <p id="imgPerfil" style="padding: 10px;">
+              </div>
+            <h4 id="perfil-nome" class="w3-center" style="padding: 15px;"></h4>
+            </div>
+          </div>
+          <br>
+        <!-- End Left Column -->
+        </div> 
+        <!-- Middle Column -->
+        <div class="w3-col m7">    
+            <div class="w3-row-padding">
+              <div class="w3-col m12">
+                <div class="w3-card w3-round w3-white">
+                  <div id="consultas-pacientes" class="w3-container w3-padding" style="max-height: 500px; overflow: auto;">
+                    
+                        <h5 class="w3-opacity"><strong>Consultas</strong></h5><br>
+                        <hr class="w3-clear">
+                        <br>
+                  </div>
+                </div>
+              </div>
+            </div>       
+
+          <br><br>  
+        <!-- End Middle Column -->
+        </div> 
+        
+        <!-- Right Column -->
+        <div class="w3-col m2">
+          <div class="w3-card w3-round w3-white w3-center">
+            <div id="dia-semana" class="w3-container">
+            
+            </div>
+          </div>
+          <br>
+
+          <div class="w3-card w3-round w3-white w3-center" >
+            <div class="w3-container" style="background-color: #58af9b;">
+              <p>Lembre-se!</p>
+              <p><strong>Beba água <i class="fa fa-water"></i></strong></p>
+              
+            </div>
+          </div>      
+          <br>   
+        <!-- End Right Column -->
+        </div>
+        
+      <!-- End Grid -->
+      </div>
+      
+    <!-- End Page Container -->
+
+    </div>
+    <br><br><br><br><br>
+
+    <!-- Footer -->
+    <footer>
+      <div style="background-color: #eff7f5ce; width: 100%; height: 400px;"></div>
+
+      <div  class="w3-bar-block w3-theme-d2" style="display: flex; flex-direction: column; align-items: center;">
+        Copy&copy;Right
+        <img src="./img/softnutrillogo.PNG" alt="">
+      </div>
+    </footer>
+
+
+    <!-- Script Nav -->
+    <script>
+      // Accordion
+      function myFunction(id) {
+        var x = document.getElementById(id);
+        if (x.className.indexOf("w3-show") == -1) {
+          x.className += " w3-show";
+          x.previousElementSibling.className += " w3-theme-d1";
+        } else { 
+          x.className = x.className.replace("w3-show", "");
+          x.previousElementSibling.className = 
+          x.previousElementSibling.className.replace(" w3-theme-d1", "");
+        }
+      }
+
+      // Used to toggle the menu on smaller screens when clicking on the menu button
+      function openNav() {
+        var x = document.getElementById("navDemo");
+        if (x.className.indexOf("w3-show") == -1) {
+          x.className += " w3-show";
+        } else { 
+          x.className = x.className.replace(" w3-show", "");
+        }
+      }
+      showDay();
+    </script>
+
+    <!-- Script jquery -->
+    <script
+      src="https://code.jquery.com/jquery-3.4.1.min.js"
+      integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo="
+      crossorigin="anonymous">
+    </script>
+    <script src="calendar.js" async defer></script> 
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/js/bootstrap.bundle.min.js" integrity="sha384-ygbV9kiqUc6oa4msXn9868pTtWMgiQaeYH7/t7LECLbyPA2x65Kgf80OJFdroafW" crossorigin="anonymous"></script>
+
+  </body>
+</html> 

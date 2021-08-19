@@ -1,0 +1,797 @@
+<!-- Página de Detalhes do Paciente  -->
+<!DOCTYPE html>
+<html lang="pt-br">
+  <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Detalhe Paciente</title>  
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+  <link rel="stylesheet" href="https://www.w3schools.com/lib/w3-theme-blue-grey.css">
+  <link rel='stylesheet' href='https://fonts.googleapis.com/css?family=Open+Sans'>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-giJF6kkoqNQ00vy+HMDP7azOuL0xtbfIcaT9wjKHr8RbDVddVHyTfAAsrekwKmP1" crossorigin="anonymous">
+  <link  href="./css/estilo.css" rel="stylesheet">
+  <link  href="./css/carousel.css" rel="stylesheet">
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@2.8.0"></script>
+  
+  <style>
+    html, body, h1, h2, h3, h4, h5 {font-family: "Open Sans", sans-serif}
+    
+    a{text-decoration: none; color: black;}
+    a:hover{color: #58af9b;}
+    
+  </style>
+      
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+
+  <script src="https://cdn.tiny.cloud/1/dvspxn9hcmtsc857ewl1xrolfuwsq3rlqhjkuh3nugbmifti/tinymce/5/tinymce.min.js" referrerpolicy="origin"></script>
+
+  <script src="./js/prontuario.js"></script>
+
+  <script>
+    // Capturar valor da url
+
+    var x = window.location.search;
+    var parts = x.split('=');
+    var [ param, idPaciente ] = parts;
+    
+    const idNutri = localStorage.getItem("idNutri");
+    var mensagens = [];
+
+    //iniciando editor
+    tinymce.init({
+      selector: 'textarea#editor',
+      menubar: false
+    });            
+    
+    //Função Assíncrona para autenticação
+    async function makeRequest(url, method, payload) {
+      var jwtToken = localStorage.getItem('token');
+
+      if(jwtToken) {
+        var content = 'Bearer ' + jwtToken;
+        var myHeader = new Headers();
+        myHeader.append('Content-type' ,'application/json;charset=UTF-8');
+        myHeader.append('Authorization', content);
+
+      }
+
+      return response = await fetch(url, {
+        method: method,
+        mode: 'cors',
+        headers: myHeader,
+        body: payload
+      });         
+    }
+
+    function loggoff() {
+      localStorage.removeItem('token');
+      localStorage.removeItem('idNutri');
+    }   
+     //Pega os dados do Paciente
+    function getPaciente() {
+      
+      var paciente = makeRequest('/detalhespaciente/'+idPaciente, 'GET');
+      paciente.then(function(response) {
+        response.json().then(function(Paciente) {
+
+          //Conteúdo top
+          var elementoH = document.createElement("h6");
+          elementoH.setAttribute('href', './detalhePaciente.html?id='+Paciente.id_paciente)
+          elementoH.setAttribute('class', 'w3-opacity')
+          elementoH.innerHTML = Paciente.nome +" "+ Paciente.sobrenome+"<br> <strong>Peso:</strong> "+Paciente.peso 
+              +"Kg <strong> Altura: </strong>" +Paciente.altura+ "m <br><br><hr>";                 
+          document.getElementById("pacienteTop").appendChild(elementoH);   
+          
+          //Conteúdo título modal chat
+          elementoH5 = document.createElement("h5");
+          elementoH5.innerHTML = Paciente.nome  +" "+ Paciente.sobrenome;
+          document.getElementById("paciente-chat").appendChild(elementoH5);
+          
+          //Conteúdo título modal dieta
+          elementoH4 = document.createElement("h5");
+          elementoH4.innerHTML = Paciente.nome;
+          document.getElementById("paciente-dieta").appendChild(elementoH4);
+          document.getElementById("paciente-prontuario").appendChild(elementoH4);
+            
+        });
+      });  
+    }
+    //exibe imagem de perfil
+    function getPerfilPaciente() {
+      var perfilPac = makeRequest('/pacPerfil/'+idPaciente, 'GET');
+      perfilPac.then(function(response) {
+        response.json().then(function(pathImg) {
+          var elementoImgTop = document.createElement("img");
+          elementoImgTop.setAttribute('class', 'perfil-chat');
+          elementoImgTop.setAttribute('alt', 'perfil');
+
+          var elementoImgPerfil = document.createElement("img");
+          elementoImgPerfil.setAttribute('class', 'perfil-chat');
+          elementoImgPerfil.setAttribute('alt', 'perfil');
+
+          if(pathImg.length > 0) {
+              elementoImgTop.setAttribute('src', '/files/'+pathImg[0].url);
+              elementoImgPerfil.setAttribute('src', '/files/'+pathImg[0].url);
+              //elementoDiv.setAttribute('width', '50%');
+              document.getElementById("imgPerfil").appendChild(elementoImgTop);                
+              document.getElementById("perfil-chat").appendChild(elementoImgPerfil);                
+              
+          } else {
+              elementoImgTop.setAttribute('src', './user.png');
+              elementoImgPerfil.setAttribute('src', './user.png');
+              document.getElementById("imgPerfil").appendChild(elementoImgTop);    
+              document.getElementById("perfil-chat").appendChild(elementoImgPerfil);    
+          }
+        });
+      });          
+    }
+    //exibe as dietas do paciente vinculadas ao nutri
+      function showDietas() {
+
+      var pacienteDietas = makeRequest('/dietasPaciente/'+idPaciente, 'GET');
+      pacienteDietas.then(function(response){
+          response.json().then(function(Paciente) {
+              console.log(Paciente.dietaHistorico);
+              var cont = 0;
+              Paciente.dietaHistorico.forEach(Dieta =>{
+                var id_dieta = Dieta.id_dieta;
+                console.log(id_dieta);
+                cont++
+              })
+          });
+      });
+    }
+
+      function showListaDietas () {
+        var cont = 0;
+        
+        var nutriDietas = makeRequest('/dietas/'+idNutri, 'GET');
+        nutriDietas.then(function (response) {
+            response.json().then(function(nutri) {
+                nutri.forEach(Dieta => {
+                    var elementoList = document.getElementById("lista-dietas");
+                    
+                    var elementoOp = document.createElement("option");                       
+                    elementoOp.setAttribute('value', Dieta.id);
+                    elementoOp.innerHTML = Dieta.descricao;
+
+                    elementoList.appendChild(elementoOp);
+                    
+                });
+                
+            });
+        });
+    }
+
+      function showDietasPaciente() {
+      var dietas = makeRequest('/testeretornodietas/'+idPaciente+'/'+idNutri, 'GET');
+      dietas.then(function(response) {
+        response.json().then(function(dietas){
+          console.log(dietas);
+          var cont = 0;
+          dietas.forEach(Dieta =>{
+            if(cont < 3) {
+
+            var elementoDiv = document.createElement("div");                        
+            elementoDiv.setAttribute('id', 'dieta'+cont)
+            elementoDiv.setAttribute('class', 'w3-card w3-round w3-white')
+            document.getElementById("dietas").appendChild(elementoDiv);   
+
+            var elementoDiv2 = document.createElement("div");
+            elementoDiv2.setAttribute('class', 'w3-container');
+            elementoDiv.appendChild(elementoDiv2);
+
+            var elementoH = document.createElement("h4");
+            elementoH.setAttribute('class', 'w3-center');
+            elementoH.innerHTML = Dieta.descricao;
+            elementoDiv2.appendChild(elementoH);
+
+            var elementoP = document.createElement("p");
+            var elementoI = document.createElement("i");
+            elementoI.setAttribute('class', 'fa fa-angle-double-up');
+            elementoI.setAttribute('class', 'fa fa-angle-double-up');
+            elementoI.setAttribute('aria-hidden', 'true');   
+            
+            var elementoImg = document.createElement('img');
+            elementoImg.setAttribute('class', 'w3-circle')
+            elementoImg.setAttribute('width', '100px');
+            elementoImg.setAttribute('heigth', '100px');
+            elementoImg.style.marginLeft = "25%"
+            elementoImg.setAttribute('src', './img/dietasHome.png');
+
+            elementoDiv2.appendChild(elementoImg);
+            
+            elementoP.innerHTML =  '<i class="fa fa-angle-double-up" aria-hidden="true"></i> Status ' + Dieta.status;
+            elementoDiv2.appendChild(elementoP);
+            }
+            
+            cont++;
+          })
+        })
+      })
+    }
+    //atualiza a dieta ativa
+    function updateDietas() {
+      var upDietas = makeRequest('updateDietas/'+idPaciente+'/'+idNutri, 'PUT');
+      upDietas.then(function(response) {
+        response.json().then(function(dieta) {
+          console.log(dieta);
+        })
+      })
+    }
+    // exibe as mensagens do chat
+    function showMessages() {
+      var exibeMensagem = makeRequest('/allMessages/'+idPaciente+'/'+idNutri, 'GET');
+      exibeMensagem.then(function(response) {
+        response.json().then(function(mensagens) {
+          var cont = 0;
+          console.log(mensagens);
+          mensagens.forEach(Mensagem => {
+            
+            if(Mensagem.remetente == idNutri) {
+
+              var msgPage = document.getElementById('msg-page'); 
+              var divOutChats = document.createElement('div');
+              divOutChats.setAttribute('class', 'outgoing-chats');
+              msgPage.appendChild(divOutChats); 
+            
+              var divOutChatsMsg = document.createElement('div');
+              divOutChatsMsg.setAttribute('class', 'outgoing-chats-msg');
+              divOutChats.appendChild(divOutChatsMsg);              
+            
+              var divOutChatsImg = document.createElement('div');
+              divOutChatsImg.setAttribute('class' , 'outgoing-chats-img');
+              divOutChats.appendChild(divOutChatsImg);
+            
+              var imgPerfilChat = document.createElement('img');
+              
+              imgPerfilChat.setAttribute('class', 'perfil-chat');
+
+              var perfilNutri = makeRequest('/perfilNutri/'+idNutri, 'GET');
+              perfilNutri.then(function(response) {
+                response.json().then(function(pathImg) {
+                  
+                  if(pathImg.length > 0) {              
+                    imgPerfilChat.setAttribute('src', '/files/'+pathImg[0].url);               
+                  } 
+                });
+              }); 
+              
+              divOutChatsImg.appendChild(imgPerfilChat);
+            
+            
+              var pMsg = document.createElement('p');
+              pMsg.innerHTML = Mensagem.mensagem;
+        
+              divOutChatsMsg.appendChild(pMsg);
+            } else {
+
+              var msgPage = document.getElementById('msg-page'); 
+
+              var divRecChats = document.createElement('div');
+              divRecChats.setAttribute('class', 'received-chats');
+              msgPage.appendChild(divRecChats); 
+
+              var divRecChatsImg = document.createElement('div');
+              divRecChatsImg.setAttribute('class' , 'received-chats-img');
+              divRecChats.appendChild(divRecChatsImg);
+
+              var divRecChatsMsg = document.createElement('div');
+              divRecChatsMsg.setAttribute('class', 'received-msg');
+              divRecChats.appendChild(divRecChatsMsg); 
+
+              var divRecMsgInb = document.createElement('div');
+              divRecMsgInb.setAttribute('class', 'received-msg-inbox');
+              divRecChatsMsg.appendChild(divRecMsgInb);   
+
+
+              var imgPerfilChat = document.createElement('img');
+
+              imgPerfilChat.setAttribute('class', 'perfil-chat');
+
+              var perfilNutri = makeRequest('/pacPerfil/'+idPaciente, 'GET');
+              perfilNutri.then(function(response) {
+                response.json().then(function(pathImg) {
+                  
+                  if(pathImg.length > 0) {              
+                  imgPerfilChat.setAttribute('src', '/files/'+pathImg[0].url);               
+                  } 
+                });
+              }); 
+
+              divRecChatsImg.appendChild(imgPerfilChat);
+
+
+              var pMsg = document.createElement('p');
+              pMsg.innerHTML = Mensagem.mensagem;
+
+              divRecMsgInb.appendChild(pMsg);
+
+            }
+            
+            cont++;
+            console.log(cont)
+          })
+        })
+      }) 
+    }
+
+    getPaciente();
+    getPerfilPaciente()
+    showDietasPaciente();
+    showListaDietas ();
+    showMessages(); 
+  </script>
+
+  </head>    
+  <body class="w3-theme-l5">
+
+    <!-- Navbar -->
+    <div class="w3-top">
+     <div class="w3-bar w3-left-align w3-large" style="background-color: #58af9b;">
+      <a class="w3-bar-item w3-button w3-hide-medium w3-hide-large w3-right w3-padding-large w3-hover-white w3-large " href="javascript:void(0);" onclick="openNav()" style="background-color: #58af9bb6;" ><i class="fa fa-bars"></i></a>
+      <a href="./home.html" class="w3-bar-item w3-button w3-padding-large" style="background-color: #58af9b;"><i class="fa fa-home w3-margin-right"></i>Início</a>
+      <a href="./pacientes.html" class="w3-bar-item w3-button w3-hide-small w3-padding-large w3-hover-white" title="Pacientes">Pacientes</a>
+      <a href="./agenda.html" class="w3-bar-item w3-button w3-hide-small w3-padding-large w3-hover-white" title="Calendário">Agenda</a>
+      <a href="./dietas.html" class="w3-bar-item w3-button w3-hide-small w3-padding-large w3-hover-white" title="Dietas">Dietas</a>
+      
+      <a onclick="loggoff();" href="/" class="w3-bar-item w3-button w3-hide-small w3-right w3-padding-large w3-hover-white" title="SAIR">
+        <img src="./img/softnutri.png"  alt="Avatar">
+      </a>
+     </div>
+    </div>
+    
+    <!-- Navbar on small screens -->
+    <div id="navDemo" class="w3-bar-block w3-theme-d2 w3-hide w3-hide-large w3-hide-medium w3-large">
+      <a href="#" class="w3-bar-item w3-button w3-padding-large">Perfil</a>
+      <a href="./pacientes.html" class="w3-bar-item w3-button w3-padding-large">Pacientes</a>
+      <a href="./agenda.html" class="w3-bar-item w3-button w3-padding-large">Agenda</a>
+      <a href="./dietas.html" class="w3-bar-item w3-button w3-padding-large">Dietas</a>
+     
+      <hr>
+     <button class="w3-bar-item w3-button w3-padding-large" onclick="openModal('modal-dieta-paciente'), setDietaPaciente();">+ Dieta</button>
+     <button class="w3-bar-item w3-button w3-padding-large" onclick="openModal('modal-chat'), sendMessage();">Chat</button>
+     <button class="w3-bar-item w3-button w3-padding-large" onclick="openModal('modal-prontuario')">Prontuário</button>
+     <hr>
+     <a onclick="loggoff();" href="/" class="w3-bar-item w3-button w3-padding-large">SAIR</a>
+    </div>
+    
+    <!-- Page Container -->
+    <div class="w2-container w2-content" style="max-width:1400px;margin-top:80px">    
+      <!-- The Grid -->
+      <div class="w3-row">
+        <div class="w3-col m3">
+    
+          <div class="w3-container w3-display-container w3-round w3-theme-l4 w3-border w3-theme-border w3-margin-bottom w3-hide-small">
+            <br>
+            
+            <p><button class="w3-button w3-block w3-theme-l4" onclick="openModal('modal-dieta-paciente'), setDietaPaciente();"><i class="fa fa-apple" style="float: left;"></i>Dieta +</button></p>
+            <br>
+            <p><button class="w3-button w3-block w3-theme-l4" onclick="openModal('modal-chat'), sendMessage();"><i class="fa fa-comment" style="float: left;"></i>Chat</button></p>
+            <br>
+            <p><button class="w3-button w3-block w3-theme-l4" onclick="openModal('modal-prontuario')"><i class="fa fa-book" style="float: left;"></i>Prontuário</button></p>
+          </div> 
+    
+        </div>
+        <!-- Middle Column -->
+        <div class="w3-col m9" >    
+          <div class="w3-row-padding">
+            <div class="w3-col m12">
+              <div class="w3-card w3-round w3-white">
+                <div class="w3-container w3-padding" >             
+                 <div id="paciente">
+                   <div id="pacienteTop">
+                    <div style="width: 12%;">
+                      <p id="imgPerfil" class="w3-left">
+                     
+                      </p>
+                    </div>
+                   
+                    <br><br><br>
+                    
+                   </div>
+
+                    <div>
+                      <div id="items-wrapper"  class="w3-container w3-card w3-white w3-round w3-margin"><br>
+                        
+                        
+                        <div id="evolucao" class="itens">
+
+                        </div>          
+                        <br>
+                
+                        <h4 class="titulo" style="text-align:left;">Consumo Semanal</h4>
+                      </div>  
+                    </div>
+                    <br><br>
+
+                    <!-- Útimas Dietas relacionadas ao Paciente -->
+                    <div id="dietasPac">
+                      <div class="w3-container w3-card w3-white w3-round w3-margin"><br>
+    
+                        <div id = "dietas" class="dietas-view">
+                          
+                        </div>
+                        <br>
+                
+                        <h4 class="titulo" style="text-align:left;">Ultimas Dietas</h4>
+                      </div> 
+                    </div>
+                    <!-- <div id="observacao"></div> -->
+                 </div>
+                 
+                 <br>
+                 <!-- Modal de atribuição de Dietas -->
+                 <div id="dietas" style="position: absolute; width: 90%;">
+                  <div id="modal-dieta-paciente" class="modal-container mostrar" style="display: none;" >
+                    <div id="modal" class="modal-agenda" style="margin-top: -100px;">        
+                        <button id="close" class="btn-close" onclick="closeModal('modal-dieta-paciente');"></button>
+                        <center>
+                        <h4 id="paciente-dieta" class="titulo">Defina uma dieta para: </h4>
+                        <br>
+                        </center>    
+                        <form id="atribui-dieta">
+
+                            <select id="lista-dietas" name="id_dieta" class="form-select form-select-lg mb-3" aria-label=".form-select-lg example" style="width: 100%;">
+                            
+                            </select><br><br>
+
+                            <input id="status" name="status" type="text" class="input" placeholder="Status">
+                            <br><br>
+                            <input id="data" name="data" type="date" class="input" placeholder="Data Início">
+                            <br><br>
+                            <button type="submit" class="button">Salvar</button>
+                        </form>             
+                    </div>
+                  </div>
+                 </div>
+                 <!-- Fim Modal de Atribuição de Dietas -->
+
+                 <!-- Modal de chat  -->
+                 <div id="chat">
+                  <div id="modal-chat" class="modal-container mostrar" style="display: none;" >
+                    <!-- <div id="modal" class="modal-agenda">         -->
+                            <div class="container">
+                              <div class="msg-header">
+                                <div id="perfil-chat" class="msg-header-img">
+                                 
+                                </div>
+                                <div id="paciente-chat" class="active">
+                                                              
+                                </div>
+                                <div class="header-icons">
+                                  <button class='close' onclick="closeModal('modal-chat')">X</button></i>
+                                </div>                            
+                              </div>
+    
+                              <div class="chat-page">
+                                <div class="msg-inbox">
+                                  <div class="chats">
+                                    <div class="msg-page" id="msg-page">                                                                
+    
+                                    </div>
+    
+                                    <div class="msg-bottom-body">
+                                      <div class="bottom-icons">
+          
+                                      </div>
+                                      <div class="input-group">
+                                        <form id="send-msg" class="input-group">
+                                          <input id="msg" name="msg" type="text" autocomplete="off" class="form-control" placeholder="Digite...">                                      
+                                          <button type="submit" class="input-group-text"><span class="input-group-text"><i class="fa fa-paper-plane"></i></span></button>
+                                          
+                                        </form>                                  
+                                        
+                                      </div>
+                                    </div>
+    
+                                  </div>
+                                </div>
+                              </div>                            
+                            </div>
+                    <!-- </div> -->
+                  </div>
+                 </div>
+                 <!-- Fim do Modal de chat -->
+
+                 <!-- Modal relacionado ao prontuário do paciente -->
+                 <div id="prontuario">
+                  <div id="modal-prontuario" class="modal-container mostrar">
+
+                    <div id="modal" style="background-color: #fff; margin-top: 50px; height: 500px; width: 60%; margin-left: 20%;">
+                      
+                      <button id="close" class="btn-close" onclick="closeModal('modal-prontuario');" style="margin-top: -20px; margin-left: 35%; position: absolute; z-index: 50;"></button>
+
+                      <textarea id="editor"><p style="text-align: center; font-size: 15px; max-height: 400px;"><img title="softNutriLogo" src="./img/logo.png" alt="softNutriLogo" width="110" height="97" />
+                          <h2 class="w3-center">Prontuário Paciente:</h2>
+                      </textarea>                  
+                      
+
+                   </div>
+                  </div>
+                 </div>
+                 <!-- Fim do Modal de prontuário -->
+                </div>
+              </div>
+            </div>
+            <br>
+          </div>       
+        <!-- End Middle Column -->
+        </div>
+         
+    <!-- End Page Container -->
+    </div>
+    <br><br><br><br><br>
+    <!-- Footer -->
+    <footer>
+      <div style="background-color: #eff7f5ce; width: 100%; height: 400px;"></div>
+
+      <div  class="w3-bar-block w3-theme-d2" style="display: flex; flex-direction: column; align-items: center;">
+        Copy&copy;Right
+        <img src="./img/softnutrillogo.PNG" alt="">
+      </div>
+    </footer>
+
+    <script src="https://code.jquery.com/jquery-3.4.1.slim.min.js" integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js" integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6" crossorigin="anonymous"></script>
+
+    <script>
+
+      function exibeGrafico () {
+        var resultados = [];
+        var pegaResult = makeRequest('/diario/'+idPaciente, 'GET');
+        pegaResult.then(function(response) {
+          response.json().then(function(diario) {
+            console.log(diario);
+            var cont = 0;
+            if(diario.length == 0) {
+                var elementoH = document.createElement("h6");
+                elementoH.innerHTML = 'Paciente não possui nenhum cálculo de consumo registrado.'
+                document.getElementById("evolucao").appendChild(elementoH);
+            }
+            diario.forEach(Resultado =>{ 
+                
+              var canvas = document.createElement("canvas");
+              canvas.setAttribute('id', 'chartEvolucao'+cont);
+              canvas.setAttribute('class', 'item');
+              document.getElementById("evolucao").appendChild(canvas);               
+
+              var dados =  Resultado.created_at;
+              console.log(dados);
+              var [data, hora] = dados.split("T");
+              var [ano, mes, dia] = data. split("-");
+
+              var today = dia+"/"+mes+"/"+ano;      
+              
+              var ctx = document.getElementById('chartEvolucao'+cont).getContext('2d');
+              var chart = new Chart(ctx, {  
+                  type: 'doughnut',
+                  data: {
+                  
+                      datasets: [
+                          {
+                              label: dia+"/"+mes+"/"+ano,
+                              borderWidth: 6,
+                              backgroundColor: ['rgb(255, 99, 132)', 'rgba(6, 204, 6, 0.85)', 'rgba(77, 166, 253, 0.85)', '#cc65fe', '#ffce56'],
+                              data: [ Resultado.fibras,  Resultado.proteinas,  Resultado.ferro,  Resultado.carboidratos,  Resultado.lipideos]
+                          },            
+                      ] , 
+                      labels : [
+                          'Fibras',
+                          'Proteínas',
+                          'Ferro',
+                          'Carboidratos',
+                          'Lipideos'
+                      ]
+                  },
+
+                  // Configuration options go here
+                  options: {
+                      title: {
+                          display: true,
+                          text: 'Consumo do dia '+today +
+                          "         Calorias:"+Resultado.calorias,       
+                      }
+                  }
+              });
+              cont++;
+            })
+          })
+        })    
+        var ctx = document.getElementById('chartEvolucao').getContext('2d');
+        
+      }
+     
+      // Accordion
+      function setDietaPaciente () {
+
+        
+          var myForm = document.getElementById("atribui-dieta");
+
+          var dieta = document.getElementById("id_dieta");
+          var status = document.getElementById("status");
+          var data = document.getElementById("data");
+              
+              myForm.addEventListener('submit', function(e){
+                  e.preventDefault();
+                  updateDietas();
+                  const formData = new FormData(this);
+
+                  const Item = {
+                      id_dieta:formData.get('id_dieta'),
+                      status:formData.get('status'),
+                      data:formData.get('data'),
+                  }
+                  console.log(
+                    JSON.stringify(Item)
+                  );
+                  
+                  var enviaItens = makeRequest('/addDieta/'+idPaciente+'/'+idNutri, 'POST', JSON.stringify(Item));
+                
+                  enviaItens.then(function(response){
+                      response.text().then(function(itens){
+                          console.log(itens);
+                          var msg = document.createElement("div");
+                          msg.setAttribute('id', 'msg-success');
+                          msg.innerHTML = "Dieta adicionada com sucesso!";
+
+                          setTimeout(function(){ msg.style.display= "none"; }, 3000);
+                          document.getElementById("modal").appendChild(msg);           
+                          
+                         // location.reload();
+                      }).catch(function(error) {
+                          console.log(error);
+                      }) 
+                  }).catch(function(error) {
+                      console.log(error);
+                  })
+
+                  
+
+              });
+      }
+
+      function myFunction(id) {
+        var x = document.getElementById(id);
+        if (x.className.indexOf("w3-show") == -1) {
+          x.className += " w3-show";
+          x.previousElementSibling.className += " w3-theme-d1";
+        } else { 
+          x.className = x.className.replace("w3-show", "");
+          x.previousElementSibling.className = 
+          x.previousElementSibling.className.replace(" w3-theme-d1", "");
+        }
+      }
+      
+      //função small
+      function openNav() {
+        var x = document.getElementById("navDemo");
+        if (x.className.indexOf("w3-show") == -1) {
+          x.className += " w3-show";
+        } else { 
+          x.className = x.className.replace(" w3-show", "");
+        }
+      }
+      
+      //Modal inserir dieta    
+      function openModal(mn) {
+          let modal = document.getElementById(mn);
+      
+          if (typeof modal == 'undefined' || modal === null) 
+          return;
+      
+          modal.style.display = 'Block';       
+      }
+      
+      function  closeModal(mn) {
+        let modal = document.getElementById(mn);
+    
+        if (typeof modal == 'undefined' || modal === null) 
+        return;
+        
+        modal.style.display = 'none';
+          
+      }
+
+      function sendMessage() {
+
+        var msg = document.getElementById('msg');
+        var myForm = document.getElementById('send-msg');
+
+        myForm.addEventListener('submit', function(e) {
+
+          e.preventDefault();
+
+          const formData = new FormData(this);
+
+          const Item = {
+            remetente:idNutri,
+            destinatario:idPaciente,
+            mensagem: formData.get('msg')
+          };
+
+          console.log(Item);
+
+          var enviaMensagem = makeRequest('/mensagem/'+idPaciente+'/'+idNutri, 'POST',JSON.stringify(Item));
+          enviaMensagem.then(function(response) {
+            response.json().then(function(mensagem) {
+              console.log(mensagem);
+
+              var now = new Date();
+              var hour = now.getHours();
+              var minute = now.getMinutes();
+              // alerta o valor do campo
+            
+              var msgPage = document.getElementById('msg-page'); 
+              var divOutChats = document.createElement('div');
+              divOutChats.setAttribute('class', 'outgoing-chats');
+              msgPage.appendChild(divOutChats); 
+            
+              var divOutChatsMsg = document.createElement('div');
+              divOutChatsMsg.setAttribute('class', 'outgoing-chats-msg');
+              divOutChats.appendChild(divOutChatsMsg);
+            
+              var divOutChatsImg = document.createElement('div');
+              divOutChatsImg.setAttribute('class' , 'outgoing-chats-img');
+              divOutChats.appendChild(divOutChatsImg);
+            
+              var imgPerfilChat = document.createElement('img');
+              imgPerfilChat.setAttribute('class', 'perfil-chat');
+              
+              var perfilNutri = makeRequest('/perfilNutri/'+idNutri, 'GET');
+              perfilNutri.then(function(response) {
+                response.json().then(function(pathImg) {
+                  console.log(pathImg[0].url);
+                  
+                  if(pathImg.length > 0) {              
+                  imgPerfilChat.setAttribute('src', '/files/'+pathImg[0].url);               
+                  } 
+                });
+              }); 
+
+              divOutChatsImg.appendChild(imgPerfilChat);
+            
+            
+              var pMsg = document.createElement('p');
+              pMsg.innerHTML = msg.value;
+            
+              divOutChatsMsg.appendChild(pMsg);
+            
+              var spanTime = document.createElement('span');
+              spanTime.setAttribute('class', 'time');
+              spanTime.innerHTML = hour +":"+ minute;
+              divOutChatsMsg.appendChild(spanTime);
+
+              var $target = $('#msg-page');
+                $target.animate({
+                scrollTop: $target.height()
+              }, 1000);
+            
+              msg.value = '';
+
+
+            })
+          })
+        })
+      
+        
+      }
+    
+      exibeGrafico();
+    </script>
+    
+    <script
+      src="https://code.jquery.com/jquery-3.4.1.min.js"
+      integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo="
+      crossorigin="anonymous">
+    </script>
+     
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/js/bootstrap.bundle.min.js" integrity="sha384-ygbV9kiqUc6oa4msXn9868pTtWMgiQaeYH7/t7LECLbyPA2x65Kgf80OJFdroafW" crossorigin="anonymous"></script>
+    
+  </body>
+</html>

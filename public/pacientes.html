@@ -1,0 +1,265 @@
+<!-- Página que lista os pacientes -->
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Pacientes|Softnutri</title>
+
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+      <link rel="stylesheet" href="https://www.w3schools.com/lib/w3-theme-blue-grey.css">
+      <link rel='stylesheet' href='https://fonts.googleapis.com/css?family=Open+Sans'>
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+      <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-giJF6kkoqNQ00vy+HMDP7azOuL0xtbfIcaT9wjKHr8RbDVddVHyTfAAsrekwKmP1" crossorigin="anonymous">
+      <link  href="./css/estilo.css" rel="stylesheet">
+
+      <style>
+          html, body, h1, h2, h3, h4, h5 {font-family: "Open Sans", sans-serif}
+
+          a{text-decoration: none; color: black;}
+          a:hover{color: #58af9b;}
+      </style>
+
+      <script>
+          const idNutri = "/"+localStorage.getItem('idNutri');    
+          
+          async function makeRequest(url, method, payload) {
+              var jwtToken = localStorage.getItem('token');
+      
+              if(jwtToken) {
+                  // headers['Authorization'] = 'Bearer ' + jwtToken;
+                  var content = 'Bearer ' + jwtToken;
+                  var myHeader = new Headers();
+                  myHeader.append('Authorization', content)
+
+              }
+      
+            return response = await fetch(url, {
+                  method: method,
+                  mode: 'cors',
+                  headers: myHeader,
+                  body: payload
+              });
+      
+          }
+
+          //Desloga o usuário do sistema
+          function loggoff() {
+              localStorage.removeItem('token');
+              localStorage.removeItem('idNutri');
+          }   
+          
+          //Exibe Todos os pacientes
+          function showPacientes() {
+            var url = '/consultas/pacientes'+idNutri;
+
+            var pacientes = makeRequest(url, 'GET');
+            pacientes.then(function(response) {
+              response.json().then(function(pacientesNutri) {
+                console.log(pacientesNutri); 
+                var cont = 0;                  
+                if(pacientesNutri.length > 0) {
+                  pacientesNutri.forEach(Paciente => {                
+
+                    var elementoLink = document.createElement("a");
+                    //elementoLink.setAttribute('onclick', '/detalhespaciente');
+                    elementoLink.setAttribute('href', './detalhePaciente.html?id='+Paciente.id_paciente)
+                    elementoLink.style.paddingRight = "10px";
+                    elementoLink.innerHTML ="<h4 class='w3-clear'>"+ Paciente.nome +" "+ Paciente.sobrenome+"</h4>";                 
+                  
+                    var elementoHr = document.createElement("hr");
+
+                    var elementoDiv = document.createElement("div");
+                    elementoDiv.setAttribute('id', 'paciente'+cont);
+                    elementoDiv.setAttribute('class', 'paciente');
+                    document.getElementById("listaPacientes").appendChild(elementoDiv);
+                    
+                    var perfilPac = makeRequest('/pacPerfil/'+Paciente.id_paciente, 'GET');
+                    perfilPac.then(function(response) {
+                      response.json().then(function(pathImg) {
+
+                        var elementoImgPerfil = document.createElement("img");
+                        elementoImgPerfil.setAttribute('class', 'w3-circle');
+                        elementoImgPerfil.setAttribute('width', '100px');
+                        elementoImgPerfil.setAttribute('heigth', '100px');
+                        elementoImgPerfil.setAttribute('alt', 'perfil');
+
+                        if(pathImg.length > 0) {
+                          elementoImgPerfil.setAttribute('src', '/files/'+pathImg[0].url);
+                          //elementoDiv.setAttribute('width', '50%');
+                          elementoDiv.appendChild(elementoImgPerfil); 
+                          elementoDiv.appendChild(elementoLink);             
+                                      
+                            
+                        } else {
+                          elementoImgPerfil.setAttribute('src', './user.png');
+                          elementoDiv.appendChild(elementoImgPerfil);
+                          elementoDiv.appendChild(elementoLink);                            
+                        }
+                      });
+                    });                        
+                      
+                    cont++;
+                  });
+                } else {
+                  var elementoH = document.createElement("h6");
+                  elementoH.innerHTML = "<strong>Você ainda não possui pacientes.<br> Disbonibilize seus horários para que eles possam ter acesso ao seu trabalho.</strong>"
+                  document.getElementById("listaPacientes").appendChild(elementoH);
+                }
+              });
+            });
+          }
+
+          //Função que puxa os detalhes do paciente 
+          function showDetalhesPaciente() {
+              var pacientes = makeRequest('/detalhespaciente', 'GET');
+              pacientes.then(function(response){
+                  response.redirected;
+              });
+          }
+
+          //Exibe o Dia da semana
+          function showDay() { 
+
+            var dias = [
+              'Domingo',
+              'Segunda-feira',
+              'Terça-feira',
+              'Quarta-feira',
+              'Quinta-feira',
+              'Sexta-feira',
+              'Sábado',        
+            ]
+            var today = new Date();
+
+            console.log(dias)
+
+            var p = document.createElement("p");
+            p.innerHTML = '<strong>Hoje é:</strong><br>'+ dias[today.getDay()]+"<br> "+
+                          today.getHours()+":"+today.getMinutes();
+            document.getElementById("dia-semana").appendChild(p);
+          }
+
+        showPacientes();
+      </script>
+  </head>
+  <body class="w3-theme-l5">
+
+      <!-- Navbar -->
+      <div class="w3-top">
+      <div class="w3-bar w3-left-align w3-large" style="background-color: #58af9b;">
+        <a class="w3-bar-item w3-button w3-hide-medium w3-hide-large w3-right w3-padding-large w3-hover-white w3-large " href="javascript:void(0);" onclick="openNav()" style="background-color: #58af9bb6;" ><i class="fa fa-bars"></i></a>
+        <a href="./home.html" class="w3-bar-item w3-button w3-padding-large" style="background-color: #58af9b;"><i class="fa fa-home w3-margin-right"></i>Início</a>
+        <a href="./pacientes.html" class="w3-bar-item w3-button w3-hide-small w3-padding-large w3-hover-white" title="Pacientes">Pacientes</a>
+        <a href="./agenda.html" class="w3-bar-item w3-button w3-hide-small w3-padding-large w3-hover-white" title="Calendário">Agenda</a>
+        <a href="./dietas.html" class="w3-bar-item w3-button w3-hide-small w3-padding-large w3-hover-white" title="Dietas">Dietas</a>
+        
+        <a onclick="loggoff();" href="/" class="w3-bar-item w3-button w3-hide-small w3-right w3-padding-large w3-hover-white" title="SAIR">
+          <img src="./img/softnutri.png"  alt="Avatar">
+        </a>
+      </div>
+      </div>
+      
+      <!-- Navbar on small screens -->
+      <div id="navDemo" class="w3-bar-block w3-theme-d2 w3-hide w3-hide-large w3-hide-medium w3-large">
+        <a href="#" class="w3-bar-item w3-button w3-padding-large">Perfil</a>
+        <a href="./pacientes.html" class="w3-bar-item w3-button w3-padding-large">Pacientes</a>
+        <a href="./agenda.html" class="w3-bar-item w3-button w3-padding-large">Agenda</a>
+        <a href="./dietas.html" class="w3-bar-item w3-button w3-padding-large">Dietas</a>
+        <hr>
+        <a onclick="loggoff();" href="/" class="w3-bar-item w3-button w3-padding-large">SAIR</a>
+      </div>
+      
+      <!-- Page Container -->
+      <div class="w3-container w3-content" style="max-width:1400px;margin-top:80px">    
+        <!-- The Grid -->
+        <div class="w3-row">
+          <div class="w3-col m3">
+              <div class="w3-card w3-round w3-white w3-center">
+                  <div class="w3-container">
+                    <p style="color: #58af9b; padding: 10px;"><strong>Cadastro de Paciente</strong></p>
+                    <p>Envie este link para que seus pacientes possam se cadastrar na plataforma</p>
+                    <p class="w3-opacity" style="width: 100%;"><strong>www.softnutri.com.br/cadastroPaciente</strong></p>
+                    
+                  </div>
+              </div>
+              <br>
+      
+          </div>
+          <!-- Middle Column -->
+          <div class="w3-col m7">    
+            <div class="w3-row-padding">
+              <div class="w3-col m12">
+                <div class="w3-card w3-round w3-white">
+                  <div id="listaPacientes" class="w3-container w3-padding">
+                  
+                  </div>
+                </div>
+              </div>
+              <br>
+            </div>  
+            <br>     
+          <!-- End Middle Column -->
+          </div>
+          <br>
+          <!-- Right Column -->
+          <div class="w3-col m2">
+            <div class="w3-card w3-round w3-white w3-center">
+              <div id="dia-semana" class="w3-container">
+              
+              </div>
+            </div>
+            <br>
+          <!-- End Right Column -->
+          </div>    
+        <!-- End Grid -->
+        </div>  
+      <!-- End Page Container -->
+      </div>
+      <br><br><br><br><br>
+      <!-- Footer -->
+      <footer>
+        <div style="background-color: #eff7f5ce; width: 100%; height: 400px;"></div>
+
+        <div  class="w3-bar-block w3-theme-d2" style="display: flex; flex-direction: column; align-items: center;">
+          Copy&copy;Right
+          <img src="./img/softnutrillogo.PNG" alt="">
+        </div>
+      </footer> 
+      <script>
+      // Accordion
+      function myFunction(id) {
+        var x = document.getElementById(id);
+        if (x.className.indexOf("w3-show") == -1) {
+          x.className += " w3-show";
+          x.previousElementSibling.className += " w3-theme-d1";
+        } else { 
+          x.className = x.className.replace("w3-show", "");
+          x.previousElementSibling.className = 
+          x.previousElementSibling.className.replace(" w3-theme-d1", "");
+        }
+      }
+      
+      //função small
+      function openNav() {
+        var x = document.getElementById("navDemo");
+        if (x.className.indexOf("w3-show") == -1) {
+          x.className += " w3-show";
+        } else { 
+          x.className = x.className.replace(" w3-show", "");
+        }
+      }
+      showDay();
+      </script>
+      
+      <script
+        src="https://code.jquery.com/jquery-3.4.1.min.js"
+        integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo="
+        crossorigin="anonymous">
+      </script>
+      
+      <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/js/bootstrap.bundle.min.js" integrity="sha384-ygbV9kiqUc6oa4msXn9868pTtWMgiQaeYH7/t7LECLbyPA2x65Kgf80OJFdroafW" crossorigin="anonymous"></script>
+  </body>
+</html>
